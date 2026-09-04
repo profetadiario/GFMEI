@@ -1,0 +1,97 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Painel";
+    var labels = System.Text.Json.JsonSerializer.Serialize(Model.HistoricoMensal.Select(h => h.Mes));
+    var receitas = System.Text.Json.JsonSerializer.Serialize(Model.HistoricoMensal.Select(h => h.Receitas));
+    var despesas = System.Text.Json.JsonSerializer.Serialize(Model.HistoricoMensal.Select(h => h.Despesas));
+}
+
+<h2 class="mb-1">Olá, @Model.NomeNegocio 👋</h2>
+<p class="text-muted mb-4">Resumo financeiro do seu negócio.</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-resumo p-3">
+            <span class="text-muted small">Receitas do mês</span>
+            <span class="valor valor-receita">R$ @Model.ResumoDoMes.TotalReceitas.ToString("N2")</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-resumo p-3">
+            <span class="text-muted small">Despesas do mês</span>
+            <span class="valor valor-despesa">R$ @Model.ResumoDoMes.TotalDespesas.ToString("N2")</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-resumo p-3">
+            <span class="text-muted small">Saldo geral</span>
+            <span class="valor @(Model.SaldoGeral >= 0 ? "valor-receita" : "valor-despesa")">R$ @Model.SaldoGeral.ToString("N2")</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-resumo p-3">
+            <span class="text-muted small">Total captado (recursos)</span>
+            <span class="valor">R$ @Model.TotalCaptado.ToString("N2")</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card card-resumo p-3">
+            <h5>Receitas x Despesas (últimos meses)</h5>
+            <canvas id="graficoFluxoCaixa" height="110"></canvas>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-resumo p-3">
+            <h5>Meta do mês</h5>
+            @if (Model.MetaDoMes is not null)
+            {
+                <p class="mb-1">@Model.MetaDoMes.Descricao</p>
+                <p class="mb-1">
+                    R$ @Model.ValorAlcancadoMeta.ToString("N2") de R$ @Model.MetaDoMes.ValorMeta.ToString("N2")
+                </p>
+                <div class="progress">
+                    <div class="progress-bar bg-success" style="width:@Model.PercentualMeta.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)%">
+                        @Model.PercentualMeta.ToString("0.0")%
+                    </div>
+                </div>
+            }
+            else
+            {
+                <p class="text-muted">Nenhuma meta definida para este mês.</p>
+                <a class="btn btn-sm btn-outline-primary" asp-controller="Metas" asp-action="Create">Definir meta</a>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        const ctx = document.getElementById('graficoFluxoCaixa');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(labels),
+                datasets: [
+                    {
+                        label: 'Receitas',
+                        data: @Html.Raw(receitas),
+                        backgroundColor: '#1e8e5a'
+                    },
+                    {
+                        label: 'Despesas',
+                        data: @Html.Raw(despesas),
+                        backgroundColor: '#c62828'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    </script>
+}

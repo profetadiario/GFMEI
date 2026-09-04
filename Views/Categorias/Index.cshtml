@@ -1,0 +1,49 @@
+@model List<Categoria>
+@{
+    ViewData["Title"] = "Categorias";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Categorias</h2>
+    <a class="btn btn-primary" asp-action="Create">+ Nova categoria</a>
+</div>
+
+<div class="card card-resumo p-3">
+    <table class="table align-middle mb-0">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Tipo</th>
+                <th class="text-end">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var categoria in Model)
+            {
+                <tr>
+                    <td>@categoria.Nome</td>
+                    <td>
+                        @if (categoria.Tipo == TipoTransacao.Receita)
+                        {
+                            <span class="badge badge-receita">Receita</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-despesa">Despesa</span>
+                        }
+                    </td>
+                    <td class="text-end tabela-acoes">
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@categoria.Id">Editar</a>
+                        <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@categoria.Id">Excluir</a>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="3" class="text-center text-muted py-4">Nenhuma categoria cadastrada.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

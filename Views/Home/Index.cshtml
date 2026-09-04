@@ -1,0 +1,43 @@
+@{
+    ViewData["Title"] = "Início";
+}
+
+<div class="p-5 mb-4 bg-white rounded-3 card-resumo text-center">
+    <h1 class="display-6 fw-bold">Controle Financeiro para MEI</h1>
+    <p class="col-lg-8 mx-auto text-muted">
+        Um sistema simples para organizar receitas, despesas, metas e captação de recursos
+        do seu negócio — desenvolvido como protótipo de um Trabalho de Conclusão de Curso sobre
+        controle financeiro de microempreendedoras individuais em Juiz de Fora - MG.
+    </p>
+    <div class="mt-4">
+        <a class="btn btn-primary btn-lg me-2" asp-controller="Conta" asp-action="Registro">Criar minha conta</a>
+        <a class="btn btn-outline-secondary btn-lg" asp-controller="Conta" asp-action="Login">Já tenho conta</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-3">
+        <div class="card card-resumo h-100 p-3">
+            <h5>Planejamento financeiro</h5>
+            <p class="text-muted small mb-0">Defina metas de faturamento mensais e acompanhe o progresso.</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-resumo h-100 p-3">
+            <h5>Fluxo de caixa</h5>
+            <p class="text-muted small mb-0">Registre receitas e despesas e veja o saldo do negócio.</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-resumo h-100 p-3">
+            <h5>Análise financeira</h5>
+            <p class="text-muted small mb-0">Visualize gráficos simples de receitas x despesas por mês.</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-resumo h-100 p-3">
+            <h5>Captação de recursos</h5>
+            <p class="text-muted small mb-0">Registre empréstimos e microcrédito obtidos para o negócio.</p>
+        </div>
+    </div>
+</div>
