@@ -1,3 +1,41 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jquery-validation-unobtrusive@4.0.0/dist/jquery.validate.unobtrusive.min.js"></script>
+<script>
+    // Ajuste para aceitar vírgula como separador decimal nos campos numéricos
+    // (ex.: "3,45"). Por padrão o jQuery Validate só aceita ponto, o que
+    // bloquearia o envio do formulário mesmo com o model binder do servidor
+    // já preparado para aceitar vírgula. A normalização abaixo converte a
+    // vírgula em ponto (e remove separador de milhar) antes de validar.
+    (function () {
+        function normalizarNumero(valor) {
+            if (typeof valor !== "string") return valor;
+            var texto = valor.trim();
+            if (texto === "") return texto;
+
+            var posVirgula = texto.lastIndexOf(",");
+            var posPonto = texto.lastIndexOf(".");
+
+            if (posVirgula >= 0 && posPonto >= 0) {
+                texto = posVirgula > posPonto
+                    ? texto.replace(/\./g, "").replace(",", ".")
+                    : texto.replace(/,/g, "");
+            } else if (posVirgula >= 0) {
+                texto = texto.replace(",", ".");
+            }
+
+            return texto;
+        }
+
+        if ($ && $.validator) {
+            $.validator.methods.number = function (value, element) {
+                return this.optional(element) || /^-?\d*[.,]?\d+$/.test(value);
+            };
+
+            $.validator.methods.range = function (value, element, param) {
+                var normalizado = parseFloat(normalizarNumero(value));
+                return this.optional(element) || (normalizado >= param[0] && normalizado <= param[1]);
+            };
+        }
+    })();
+</script>
