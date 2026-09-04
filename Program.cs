@@ -1,9 +1,22 @@
+using System.Globalization;
 using GestaoFinanceiraMEI.Data;
+using GestaoFinanceiraMEI.Infraestrutura;
 using GestaoFinanceiraMEI.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Cultura padrão pt-BR ---------------------------------------------------
+// Define pt-BR como cultura padrão da aplicação (independentemente da
+// cultura do sistema operacional onde ela rodar), garantindo formatação
+// de moeda/data consistente. A interpretação de números digitados pelo
+// usuário nos formulários, porém, é tratada à parte pelo DecimalModelBinder
+// abaixo, que aceita tanto vírgula quanto ponto como separador decimal.
+var culturaPadrao = new CultureInfo("pt-BR");
+CultureInfo.DefaultThreadCurrentCulture = culturaPadrao;
+CultureInfo.DefaultThreadCurrentUICulture = culturaPadrao;
 
 // Banco de dados (SQLite) ----------------------------------------------
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -13,7 +26,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(connectionString));
 
 // MVC --------------------------------------------------------------------
-builder.Services.AddControllersWithViews();
+// O DecimalModelBinderProvider é registrado antes dos binders padrão para
+// que campos decimal/decimal? dos formulários aceitem tanto "3,45" quanto
+// "3.45" como entrada, sem depender da cultura corrente do servidor.
+builder.Services.AddControllersWithViews(options =>
+{
+    options.ModelBinderProviders.Insert(0, new DecimalModelBinderProvider());
+});
 
 // Serviços de domínio ------------------------------------------------
 builder.Services.AddScoped<IFluxoCaixaService, FluxoCaixaService>();
@@ -45,6 +64,15 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Erro");
     app.UseHsts();
 }
+
+// Força pt-BR em toda a aplicação (exibição de datas/moeda), independente
+// da cultura instalada na máquina onde o servidor roda.
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(culturaPadrao),
+    SupportedCultures = new[] { culturaPadrao },
+    SupportedUICultures = new[] { culturaPadrao }
+});
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
