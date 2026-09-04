@@ -1,0 +1,56 @@
+@model RegistroViewModel
+@{
+    ViewData["Title"] = "Criar conta";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card card-resumo p-4">
+            <h2 class="mb-4">Criar conta</h2>
+
+            <form asp-controller="Conta" asp-action="Registro" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Nome" class="form-label"></label>
+                    <input asp-for="Nome" class="form-control" />
+                    <span asp-validation-for="Nome" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="NomeNegocio" class="form-label"></label>
+                    <input asp-for="NomeNegocio" class="form-control" />
+                    <span asp-validation-for="NomeNegocio" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Senha" class="form-label"></label>
+                    <input asp-for="Senha" class="form-control" />
+                    <span asp-validation-for="Senha" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ConfirmarSenha" class="form-label"></label>
+                    <input asp-for="ConfirmarSenha" class="form-control" />
+                    <span asp-validation-for="ConfirmarSenha" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Criar conta</button>
+            </form>
+
+            <p class="text-center mt-3 mb-0">
+                Já tem conta? <a asp-controller="Conta" asp-action="Login">Entrar</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

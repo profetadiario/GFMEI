@@ -1,0 +1,40 @@
+@model List<MetaProgressoViewModel>
+@{
+    ViewData["Title"] = "Metas Financeiras";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Metas Financeiras</h2>
+    <a class="btn btn-primary" asp-action="Create">+ Nova meta</a>
+</div>
+
+<div class="row g-3">
+    @foreach (var item in Model)
+    {
+        <div class="col-md-6">
+            <div class="card card-resumo p-3 h-100">
+                <div class="d-flex justify-content-between">
+                    <h5>@item.Meta.Descricao</h5>
+                    <span class="text-muted small">@item.Meta.MesReferencia.ToString("MMM/yyyy", new System.Globalization.CultureInfo("pt-BR"))</span>
+                </div>
+                <p class="mb-1">
+                    Meta: <strong>R$ @item.Meta.ValorMeta.ToString("N2")</strong> —
+                    Alcançado: <strong>R$ @item.ValorAlcancado.ToString("N2")</strong>
+                </p>
+                <div class="progress mb-2">
+                    <div class="progress-bar bg-success" style="width:@item.PercentualAtingido.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)%">
+                        @item.PercentualAtingido.ToString("0.0")%
+                    </div>
+                </div>
+                <div class="tabela-acoes">
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Meta.Id">Editar</a>
+                    <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Meta.Id">Excluir</a>
+                </div>
+            </div>
+        </div>
+    }
+    @if (!Model.Any())
+    {
+        <p class="text-center text-muted py-4">Nenhuma meta cadastrada ainda.</p>
+    }
+</div>

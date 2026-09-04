@@ -1,0 +1,16 @@
+@model CaptacaoRecurso
+@{
+    ViewData["Title"] = "Excluir captação";
+}
+
+<h2 class="mb-4">Excluir captação de recursos</h2>
+
+<div class="card card-resumo p-4 col-md-6">
+    <p>Tem certeza que deseja excluir o registro de <strong>@Model.InstituicaoFinanceira</strong> (R$ @Model.Valor.ToString("N2"))?</p>
+
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-danger">Excluir</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+    </form>
+</div>

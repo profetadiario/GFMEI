@@ -1,0 +1,49 @@
+@model CaptacaoRecurso
+@{
+    ViewData["Title"] = "Novo registro de captação";
+}
+
+<h2 class="mb-4">Nova captação de recursos</h2>
+
+<div class="card card-resumo p-4 col-md-6">
+    <form asp-action="Create" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="mb-3">
+            <label asp-for="InstituicaoFinanceira" class="form-label"></label>
+            <input asp-for="InstituicaoFinanceira" class="form-control" />
+            <span asp-validation-for="InstituicaoFinanceira" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Valor" class="form-label"></label>
+            <input asp-for="Valor" class="form-control" />
+            <span asp-validation-for="Valor" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="TaxaJurosMensal" class="form-label"></label>
+            <input asp-for="TaxaJurosMensal" class="form-control" />
+            <span asp-validation-for="TaxaJurosMensal" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Finalidade" class="form-label"></label>
+            <input asp-for="Finalidade" class="form-control" placeholder="Ex.: Compra de equipamentos" />
+            <span asp-validation-for="Finalidade" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="DataObtencao" class="form-label"></label>
+            <input asp-for="DataObtencao" class="form-control" />
+            <span asp-validation-for="DataObtencao" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

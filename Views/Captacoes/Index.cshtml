@@ -1,0 +1,46 @@
+@model List<CaptacaoRecurso>
+@{
+    ViewData["Title"] = "Captação de Recursos";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Captação de Recursos</h2>
+    <a class="btn btn-primary" asp-action="Create">+ Novo registro</a>
+</div>
+
+<div class="card card-resumo p-3">
+    <table class="table align-middle mb-0">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Instituição</th>
+                <th>Finalidade</th>
+                <th class="text-end">Valor</th>
+                <th class="text-end">Taxa a.m.</th>
+                <th class="text-end">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var captacao in Model)
+            {
+                <tr>
+                    <td>@captacao.DataObtencao.ToString("dd/MM/yyyy")</td>
+                    <td>@captacao.InstituicaoFinanceira</td>
+                    <td>@captacao.Finalidade</td>
+                    <td class="text-end">R$ @captacao.Valor.ToString("N2")</td>
+                    <td class="text-end">@captacao.TaxaJurosMensal.ToString("N2")%</td>
+                    <td class="text-end tabela-acoes">
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@captacao.Id">Editar</a>
+                        <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@captacao.Id">Excluir</a>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">Nenhuma captação de recursos registrada.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
