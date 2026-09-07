@@ -21,14 +21,11 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Restaurar dependências
-        run: dotnet restore GestaoFinanceiraMEI.csproj
+      - name: Restaurar dependências (win-x86)
+        run: dotnet restore GestaoFinanceiraMEI.csproj -r win-x86
 
-      - name: Compilar (Release)
-        run: dotnet build GestaoFinanceiraMEI.csproj -c Release --no-restore
-
-      - name: Publicar artefatos
-        run: dotnet publish GestaoFinanceiraMEI.csproj -c Release --no-build -o "${{ github.workspace }}/publicado"
+      - name: Publicar artefatos (win-x86, framework-dependente)
+        run: dotnet publish GestaoFinanceiraMEI.csproj -c Release -r win-x86 --self-contained false --no-restore -o "${{ github.workspace }}/publicado"
 
       - name: Injetar connection string real do Somee
         run: |
