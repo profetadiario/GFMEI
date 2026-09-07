@@ -18,12 +18,16 @@ var culturaPadrao = new CultureInfo("pt-BR");
 CultureInfo.DefaultThreadCurrentCulture = culturaPadrao;
 CultureInfo.DefaultThreadCurrentUICulture = culturaPadrao;
 
-// Banco de dados (SQLite) ----------------------------------------------
+// Banco de dados (SQL Server / MS SQL Express) ---------------------------
+// Em desenvolvimento local, aponta por padrão para o LocalDB que acompanha
+// o Visual Studio (appsettings.json). Em produção (hospedagem no Somee.com),
+// o valor real vem de appsettings.Production.json, com a connection string
+// do banco MS SQL Express fornecido pelo provedor.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Data Source=gestaofinanceira.db";
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' não configurada.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(connectionString));
+    options.UseSqlServer(connectionString));
 
 // MVC --------------------------------------------------------------------
 // O DecimalModelBinderProvider é registrado antes dos binders padrão para
