@@ -31,6 +31,12 @@ jobs:
         run: |
           sed -i "s|__SOMEE_CONNECTION_STRING__|${{ secrets.SOMEE_DB_CONNECTION_STRING }}|g" "${{ github.workspace }}/publicado/appsettings.Production.json"
 
+      - name: Colocar o site offline (libera o lock do .dll para o deploy)
+        run: |
+          echo "<html><body>Atualizando o sistema, volte em instantes...</body></html>" > app_offline.htm
+          curl -s -T app_offline.htm "ftp://${{ secrets.SOMEE_FTP_HOST }}/www.gfmei.somee.com/app_offline.htm" --user "${{ secrets.SOMEE_FTP_USER }}:${{ secrets.SOMEE_FTP_PASSWORD }}"
+          sleep 15
+
       - name: Deploy via FTP para o Somee
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -40,3 +46,7 @@ jobs:
           local-dir: ./publicado/
           server-dir: ./www.gfmei.somee.com/
           protocol: ftp
+
+      - name: Colocar o site online novamente
+        run: |
+          curl -s --user "${{ secrets.SOMEE_FTP_USER }}:${{ secrets.SOMEE_FTP_PASSWORD }}" -Q "DELE app_offline.htm" "ftp://${{ secrets.SOMEE_FTP_HOST }}/www.gfmei.somee.com/"
