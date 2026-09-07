@@ -42,4 +42,4 @@ jobs:
           password: ${{ secrets.SOMEE_FTP_PASSWORD }}
           local-dir: ./publicado/
           server-dir: ./
-          protocol: ftps
+          protocol: ftp
