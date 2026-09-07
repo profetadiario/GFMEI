@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading.RateLimiting;
 using GestaoFinanceiraMEI.Data;
 using GestaoFinanceiraMEI.Infraestrutura;
 using GestaoFinanceiraMEI.Services;
@@ -50,9 +51,47 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/Conta/Login";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
+
+        // Reforço de segurança do cookie de autenticação.
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        // IMPORTANTE: só trocar para CookieSecurePolicy.Always depois que o
+        // HTTPS estiver ativo e confirmado no domínio de produção — com
+        // "Always" antes disso, o navegador descarta o cookie em conexões
+        // HTTP e ninguém consegue permanecer logado.
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     });
 
 builder.Services.AddHttpContextAccessor();
+
+// Limitação de taxa de requisições (proteção básica contra força bruta e
+// varreduras automatizadas) ------------------------------------------
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Limite global por IP: não afeta o uso normal de uma pessoa navegando,
+    // mas barra scripts/scanners que disparam muitas requisições seguidas.
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "desconhecido";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromSeconds(10),
+            QueueLimit = 0
+        });
+    });
+
+    // Limite mais restrito específico para login/cadastro, contra
+    // tentativas de força bruta de senha ou spam de contas.
+    options.AddFixedWindowLimiter("login", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueLimit = 0;
+    });
+});
 
 var app = builder.Build();
 
@@ -79,9 +118,30 @@ app.UseRequestLocalization(new RequestLocalizationOptions
 });
 
 app.UseHttpsRedirection();
+
+// Cabeçalhos HTTP de segurança básicos, aplicados a toda resposta.
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers.Append("X-Content-Type-Options", "nosniff");
+    headers.Append("X-Frame-Options", "DENY");
+    headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    headers.Append("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+    headers.Append(
+        "Content-Security-Policy",
+        "default-src 'self'; " +
+        "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; " +
+        "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; " +
+        "img-src 'self' data:; " +
+        "font-src 'self' https://cdn.jsdelivr.net;");
+    await next();
+});
+
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
