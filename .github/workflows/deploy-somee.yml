@@ -38,5 +38,5 @@ jobs:
           username: ${{ secrets.SOMEE_FTP_USER }}
           password: ${{ secrets.SOMEE_FTP_PASSWORD }}
           local-dir: ./publicado/
-          server-dir: ./
+          server-dir: ./www.gfmei.somee.com/
           protocol: ftp
