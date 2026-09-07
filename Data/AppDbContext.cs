@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GestaoFinanceiraMEI.Data;
 
 /// <summary>
-/// Contexto de acesso a dados do sistema (Entity Framework Core + SQLite).
+/// Contexto de acesso a dados do sistema (Entity Framework Core + SQL Server / MS SQL Express).
 /// </summary>
 public class AppDbContext : DbContext
 {
