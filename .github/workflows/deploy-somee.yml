@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Baixar código do repositório
+      - name: Baixar cÃ³digo do repositÃ³rio
         uses: actions/checkout@v4
 
       - name: Configurar .NET ${{ env.DOTNET_VERSION }}
@@ -21,7 +21,7 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Restaurar dependências
+      - name: Restaurar dependÃªncias
         run: dotnet restore GestaoFinanceiraMEI.csproj
 
       - name: Compilar (Release)
