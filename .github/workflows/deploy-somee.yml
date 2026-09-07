@@ -47,7 +47,3 @@ jobs:
           local-dir: ./publicado/
           server-dir: ./${{ env.SITE_DIR }}/
           protocol: ftp
-
-      - name: Colocar o site online novamente
-        run: |
-          curl -s --user "${{ secrets.SOMEE_FTP_USER }}:${{ secrets.SOMEE_FTP_PASSWORD }}" -Q "DELE app_offline.htm" "ftp://${{ secrets.SOMEE_FTP_HOST }}/${{ env.SITE_DIR }}/"
