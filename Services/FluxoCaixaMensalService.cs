@@ -1,4 +1,3 @@
-using System.Globalization;
 using GestaoFinanceiraMEI.Data;
 using GestaoFinanceiraMEI.Models;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +11,13 @@ namespace GestaoFinanceiraMEI.Services;
 public class FluxoCaixaMensalService : IFluxoCaixaMensalService
 {
     private readonly AppDbContext _context;
-    private static readonly CultureInfo PtBr = new("pt-BR");
+
+    // Abreviações fixas em vez de CultureInfo("pt-BR").ToString("MMM"):
+    // o formato "MMM" do .NET para pt-BR depende dos dados de globalização
+    // (ICU) instalados na máquina e pode incluir um ponto (ex.: "jan."),
+    // o que tornaria a exibição inconsistente entre ambientes.
+    private static readonly string[] NomesMesesAbreviados =
+        { "JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ" };
 
     public FluxoCaixaMensalService(AppDbContext context)
     {
@@ -31,20 +36,27 @@ public class FluxoCaixaMensalService : IFluxoCaixaMensalService
             t.Tipo == TipoTransacao.Receita ? t.Valor : -t.Valor);
 
         var transacoesDoAno = await _context.Transacoes
-            .Include(t => t.Categoria)
             .Where(t => t.UsuarioId == usuarioId && t.Data.Year == ano)
             .ToListAsync();
+
+        // Busca os nomes das categorias envolvidas separadamente (em vez de
+        // Include(t => t.Categoria)): como CategoriaId é uma FK obrigatória,
+        // o Include gera um INNER JOIN, que descartaria silenciosamente
+        // qualquer lançamento cuja categoria não existe mais, em vez de
+        // agrupá-lo como "Sem categoria".
+        var categoriaIds = transacoesDoAno.Select(t => t.CategoriaId).Distinct().ToList();
+        var nomePorCategoria = await _context.Categorias
+            .Where(c => categoriaIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, c => c.Nome);
 
         var fluxo = new FluxoCaixaAnual
         {
             Ano = ano,
-            NomesMeses = Enumerable.Range(1, 12)
-                .Select(m => new DateTime(ano, m, 1).ToString("MMM", PtBr).ToUpper(PtBr))
-                .ToArray()
+            NomesMeses = (string[])NomesMesesAbreviados.Clone()
         };
 
-        fluxo.Entradas = MontarLinhasPorCategoria(transacoesDoAno, TipoTransacao.Receita);
-        fluxo.Saidas = MontarLinhasPorCategoria(transacoesDoAno, TipoTransacao.Despesa);
+        fluxo.Entradas = MontarLinhasPorCategoria(transacoesDoAno, TipoTransacao.Receita, nomePorCategoria);
+        fluxo.Saidas = MontarLinhasPorCategoria(transacoesDoAno, TipoTransacao.Despesa, nomePorCategoria);
 
         for (int mes = 1; mes <= 12; mes++)
         {
@@ -68,11 +80,11 @@ public class FluxoCaixaMensalService : IFluxoCaixaMensalService
         return fluxo;
     }
 
-    private static List<LinhaCategoriaFluxo> MontarLinhasPorCategoria(List<Transacao> transacoesDoAno, TipoTransacao tipo)
+    private static List<LinhaCategoriaFluxo> MontarLinhasPorCategoria(List<Transacao> transacoesDoAno, TipoTransacao tipo, Dictionary<int, string> nomePorCategoria)
     {
         var porCategoria = transacoesDoAno
             .Where(t => t.Tipo == tipo)
-            .GroupBy(t => t.Categoria?.Nome ?? "Sem categoria")
+            .GroupBy(t => nomePorCategoria.GetValueOrDefault(t.CategoriaId, "Sem categoria"))
             .OrderBy(g => g.Key);
 
         var linhas = new List<LinhaCategoriaFluxo>();

@@ -25,9 +25,18 @@ public class DreService : IDreService
         // com ToListAsync() e somamos em memória (mesma estratégia já usada
         // no restante do sistema para evitar problemas de tradução de LINQ).
         var transacoesDoMes = await _context.Transacoes
-            .Include(t => t.Categoria)
             .Where(t => t.UsuarioId == usuarioId && t.Data.Month == mes && t.Data.Year == ano)
             .ToListAsync();
+
+        // Busca a natureza das categorias envolvidas separadamente (em vez de
+        // Include(t => t.Categoria)): como CategoriaId é uma FK obrigatória,
+        // o Include gera um INNER JOIN, que descartaria silenciosamente
+        // qualquer lançamento cuja categoria não existe mais — perdendo valor
+        // do cálculo em vez de classificá-lo como despesa variável.
+        var categoriaIds = transacoesDoMes.Select(t => t.CategoriaId).Distinct().ToList();
+        var naturezaPorCategoria = await _context.Categorias
+            .Where(c => categoriaIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, c => c.NaturezaDespesa);
 
         var receitaBruta = transacoesDoMes
             .Where(t => t.Tipo == TipoTransacao.Receita)
@@ -36,7 +45,7 @@ public class DreService : IDreService
         var despesas = transacoesDoMes.Where(t => t.Tipo == TipoTransacao.Despesa);
 
         decimal SomaPorNatureza(NaturezaDespesa natureza) =>
-            despesas.Where(t => (t.Categoria?.NaturezaDespesa ?? NaturezaDespesa.DespesaVariavel) == natureza)
+            despesas.Where(t => naturezaPorCategoria.GetValueOrDefault(t.CategoriaId, NaturezaDespesa.DespesaVariavel) == natureza)
                     .Sum(t => t.Valor);
 
         return new DreMensal

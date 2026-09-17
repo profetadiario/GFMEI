@@ -48,14 +48,17 @@ o resultado financeiro do negócio mês a mês.
 ## Estrutura do projeto
 
 ```
-GestaoFinanceiraMEI/
-├── Controllers/     Lógica de requisição/resposta (padrão MVC)
-├── Models/           Entidades do domínio (mapeadas pelo EF Core)
-├── ViewModels/        Modelos auxiliares específicos de tela
-├── Services/          Regras de negócio (DRE, fluxo de caixa, hash de senha)
-├── Data/               Contexto do banco de dados (AppDbContext)
-├── Views/               Telas Razor (.cshtml)
-└── wwwroot/              Arquivos estáticos (CSS)
+GestaoFinanceiraMEI/                 (solução)
+├── GestaoFinanceiraMEI/             Projeto principal (ASP.NET Core MVC)
+│   ├── Controllers/     Lógica de requisição/resposta (padrão MVC)
+│   ├── Models/           Entidades do domínio (mapeadas pelo EF Core)
+│   ├── ViewModels/        Modelos auxiliares específicos de tela
+│   ├── Services/          Regras de negócio (DRE, fluxo de caixa, hash de senha)
+│   ├── Infraestrutura/     Componentes de apoio ao ASP.NET Core (ex.: model binder)
+│   ├── Data/               Contexto do banco de dados (AppDbContext)
+│   ├── Views/               Telas Razor (.cshtml)
+│   └── wwwroot/              Arquivos estáticos (CSS)
+└── GestaoFinanceiraMEI.Tests/       Projeto de testes automatizados (ver seção abaixo)
 ```
 
 ## Autenticação
@@ -74,3 +77,48 @@ variáveis e deduções/impostos, cada categoria de despesa tem um campo de **na
 receita não usam esse campo. Categorias criadas antes dessa funcionalidade existir
 recebem automaticamente a natureza "Despesa variável" e podem ser reclassificadas a
 qualquer momento.
+
+## Testes automatizados e cobertura de código
+
+O projeto `GestaoFinanceiraMEI.Tests` reúne os testes automatizados (unitários e de
+integração com banco em memória) de toda a lógica de negócio do sistema: Controllers,
+Services (DRE, fluxo de caixa, hash de senha), Models, ViewModels, o model binder
+customizado (`Infraestrutura/DecimalModelBinder`) e as regras de modelagem do
+`AppDbContext` (índice único de e-mail, exclusão em cascata/restrita).
+
+**Stack de testes:** NUnit + Moq + Entity Framework Core InMemory (cada teste roda contra
+um banco em memória isolado, sem precisar de um SQL Server real).
+
+### Como rodar os testes
+
+```bash
+cd GestaoFinanceiraMEI.Tests
+dotnet test
+```
+
+### Como gerar o relatório de cobertura de código
+
+```bash
+cd GestaoFinanceiraMEI.Tests
+dotnet test --settings coverlet.runsettings --collect:"XPlat Code Coverage"
+
+# (opcional) gerar um relatório HTML navegável a partir do .cobertura.xml gerado:
+dotnet tool install -g dotnet-reportgenerator-globaltool   # só na primeira vez
+reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:"CoverageReport" -reporttypes:Html
+```
+
+O relatório HTML fica em `GestaoFinanceiraMEI.Tests/CoverageReport/index.html`.
+
+**Escopo da cobertura (100% da lógica de negócio):** o arquivo `coverlet.runsettings`
+exclui do cálculo de cobertura apenas dois pontos, que não são "lógica de negócio"
+testável da mesma forma que uma classe de domínio:
+
+- `Program.cs` — código de inicialização/bootstrap do ASP.NET Core (configuração de DI,
+  pipeline HTTP, middlewares), que exigiria um teste de integração ponta a ponta com
+  servidor real para ser exercitado, e não expressa uma regra do sistema por si só.
+- `AspNetCoreGeneratedDocument.*` — classes que o compilador Razor gera automaticamente
+  a partir das Views (`.cshtml`); é HTML/marcação, não lógica de negócio.
+
+Controllers, Services, Models, ViewModels, o `DecimalModelBinder` e o `AppDbContext`
+ficam **dentro** do escopo de cobertura e são o alvo dos mais de 190 métodos de teste
+do projeto (bem mais de 200 casos executados, já contando as variações via `[TestCase]`).
