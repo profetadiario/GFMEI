@@ -20,6 +20,14 @@ public class Categoria
     [Display(Name = "Tipo")]
     public TipoTransacao Tipo { get; set; }
 
+    /// <summary>
+    /// Natureza contábil usada para montar o DRE. Só se aplica quando
+    /// Tipo == Despesa; para categorias de Receita fica com o valor padrão
+    /// e não é usada em nenhum cálculo.
+    /// </summary>
+    [Display(Name = "Natureza (para o DRE)")]
+    public NaturezaDespesa NaturezaDespesa { get; set; } = NaturezaDespesa.DespesaVariavel;
+
     public int UsuarioId { get; set; }
 
     [ForeignKey(nameof(UsuarioId))]

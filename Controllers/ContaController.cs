@@ -64,11 +64,11 @@ public class ContaController : Controller
             new() { Nome = "Vendas", Tipo = TipoTransacao.Receita, UsuarioId = usuario.Id },
             new() { Nome = "Prestação de serviços", Tipo = TipoTransacao.Receita, UsuarioId = usuario.Id },
             new() { Nome = "Outras receitas", Tipo = TipoTransacao.Receita, UsuarioId = usuario.Id },
-            new() { Nome = "Fornecedores/Insumos", Tipo = TipoTransacao.Despesa, UsuarioId = usuario.Id },
-            new() { Nome = "Aluguel", Tipo = TipoTransacao.Despesa, UsuarioId = usuario.Id },
-            new() { Nome = "Impostos (DAS)", Tipo = TipoTransacao.Despesa, UsuarioId = usuario.Id },
-            new() { Nome = "Transporte", Tipo = TipoTransacao.Despesa, UsuarioId = usuario.Id },
-            new() { Nome = "Outras despesas", Tipo = TipoTransacao.Despesa, UsuarioId = usuario.Id }
+            new() { Nome = "Fornecedores/Insumos", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.CustoMercadoriaVendida, UsuarioId = usuario.Id },
+            new() { Nome = "Aluguel", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.DespesaFixa, UsuarioId = usuario.Id },
+            new() { Nome = "Impostos (DAS)", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.DeducaoOuImposto, UsuarioId = usuario.Id },
+            new() { Nome = "Transporte", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.DespesaVariavel, UsuarioId = usuario.Id },
+            new() { Nome = "Outras despesas", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.DespesaVariavel, UsuarioId = usuario.Id }
         };
         _context.Categorias.AddRange(categoriasPadrao);
         await _context.SaveChangesAsync();

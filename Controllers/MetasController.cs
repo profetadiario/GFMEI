@@ -13,10 +13,12 @@ namespace GestaoFinanceiraMEI.Controllers;
 public class MetasController : AutenticadoController
 {
     private readonly AppDbContext _context;
+    private readonly IDreService _dreService;
 
-    public MetasController(AppDbContext context)
+    public MetasController(AppDbContext context, IDreService dreService)
     {
         _context = context;
+        _dreService = dreService;
     }
 
     public async Task<IActionResult> Index()
@@ -29,21 +31,15 @@ public class MetasController : AutenticadoController
         var itens = new List<MetaProgressoViewModel>();
         foreach (var meta in metas)
         {
-            // SQLite (via EF Core) não traduz Sum/Average sobre "decimal" para SQL,
-            // então materializamos a lista com ToListAsync() e somamos em memória
-            // (LINQ to Objects) em vez de usar SumAsync diretamente na query.
-            var receitasDoMes = (await _context.Transacoes
-                .Where(t => t.UsuarioId == UsuarioId
-                            && t.Tipo == TipoTransacao.Receita
-                            && t.Data.Month == meta.MesReferencia.Month
-                            && t.Data.Year == meta.MesReferencia.Year)
-                .ToListAsync())
-                .Sum(t => t.Valor);
+            // A meta representa lucro desejado no mês, então o valor
+            // "alcançado" é o Lucro Líquido apurado no DRE daquele mês
+            // (e não mais a receita bruta).
+            var dreDoMes = await _dreService.ObterDreAsync(UsuarioId, meta.MesReferencia.Month, meta.MesReferencia.Year);
 
             itens.Add(new MetaProgressoViewModel
             {
                 Meta = meta,
-                ValorAlcancado = receitasDoMes
+                ValorAlcancado = dreDoMes.LucroLiquido
             });
         }
 

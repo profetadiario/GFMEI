@@ -8,5 +8,5 @@ public class MetaProgressoViewModel
     public decimal ValorAlcancado { get; set; }
 
     public decimal PercentualAtingido =>
-        Meta.ValorMeta == 0 ? 0 : Math.Min(100, Math.Round((ValorAlcancado / Meta.ValorMeta) * 100, 1));
+        Meta.ValorMeta == 0 ? 0 : Math.Clamp(Math.Round((ValorAlcancado / Meta.ValorMeta) * 100, 1), 0, 100);
 }
