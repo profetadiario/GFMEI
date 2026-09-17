@@ -1,5 +1,6 @@
 using GestaoFinanceiraMEI.Data;
 using GestaoFinanceiraMEI.Models;
+using GestaoFinanceiraMEI.Services;
 using GestaoFinanceiraMEI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
