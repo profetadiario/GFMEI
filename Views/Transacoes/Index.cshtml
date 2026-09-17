@@ -1,6 +1,6 @@
 @model List<Transacao>
 @{
-    ViewData["Title"] = "Fluxo de Caixa";
+    ViewData["Title"] = "Lançamentos";
     var mes = (int)ViewData["Mes"]!;
     var ano = (int)ViewData["Ano"]!;
     var totalReceitas = (decimal)ViewData["TotalReceitas"]!;
@@ -10,7 +10,7 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Fluxo de Caixa</h2>
+    <h2>Lançamentos</h2>
     <a class="btn btn-primary" asp-action="Create">+ Novo lançamento</a>
 </div>
 

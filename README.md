@@ -25,8 +25,8 @@ dados (usando `Database.EnsureCreated()`), sem necessidade de rodar migrações.
 | Módulo | Competência de gestão financeira (referencial teórico do TCC) |
 |---|---|
 | Metas Financeiras | Planejamento financeiro |
-| Categorias / Fluxo de Caixa | Controle de custos |
-| Fluxo de Caixa | Gestão de fluxo de caixa |
+| Lançamentos (receitas/despesas) | Controle de custos |
+| Categorias | Classificação dos lançamentos (apoio) |
 | Painel (Dashboard) | Análise financeira |
 | Captação de Recursos | Captação de recursos |
 
