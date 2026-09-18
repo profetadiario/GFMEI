@@ -58,7 +58,8 @@ GestaoFinanceiraMEI/                 (solução)
 │   ├── Data/               Contexto do banco de dados (AppDbContext)
 │   ├── Views/               Telas Razor (.cshtml)
 │   └── wwwroot/              Arquivos estáticos (CSS)
-└── GestaoFinanceiraMEI.Tests/       Projeto de testes automatizados (ver seção abaixo)
+├── GestaoFinanceiraMEI.Tests/       Projeto de testes automatizados (ver seção abaixo)
+└── cypress-demo/                     Demo E2E da jornada de uso, via Cypress (ver seção abaixo)
 ```
 
 ## Autenticação
@@ -122,3 +123,32 @@ testável da mesma forma que uma classe de domínio:
 Controllers, Services, Models, ViewModels, o `DecimalModelBinder` e o `AppDbContext`
 ficam **dentro** do escopo de cobertura e são o alvo dos mais de 190 métodos de teste
 do projeto (bem mais de 200 casos executados, já contando as variações via `[TestCase]`).
+
+## Demo de uso ponta a ponta (Cypress)
+
+A pasta `cypress-demo/` traz uma demo automatizada, via navegador, da jornada completa
+de uma usuária, com um cenário rico em dados: criar conta, cadastrar categorias próprias,
+lançar várias receitas e despesas (cobrindo CMV, despesas fixas, variáveis e deduções/
+impostos), definir metas financeiras, registrar captações de recursos e conferir os
+números no Painel, no DRE e no Fluxo de Caixa. Ao final, a sessão continua autenticada
+(sem logout) e o e-mail/senha da conta criada ficam disponíveis no terminal e em
+`cypress-demo/ultima-conta-demo.txt`, para continuar explorando manualmente. Diferente
+dos testes de `GestaoFinanceiraMEI.Tests` (que rodam sem banco real e sem navegador),
+esta demo abre o sistema de verdade no Chrome e navega pelas telas como uma usuária
+faria, servindo tanto para **mostrar o sistema funcionando** (ao vivo ou gravado em
+vídeo, útil na apresentação do TCC) quanto como um teste de regressão end-to-end real.
+
+```bash
+# 1) suba o sistema (em um terminal separado, deixe rodando):
+cd GestaoFinanceiraMEI
+dotnet run
+
+# 2) em outro terminal, rode a demo:
+cd cypress-demo
+npm install
+npm run demo:aberta    # abre o Cypress e acompanha ao vivo
+# ou
+npm run demo:gravar    # roda em modo headless e grava um vídeo em cypress/videos/
+```
+
+Mais detalhes em `cypress-demo/README.md`.

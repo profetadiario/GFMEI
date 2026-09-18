@@ -34,4 +34,16 @@
     <None Remove="GestaoFinanceiraMEI.Tests\**\*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Mesmo motivo do bloco acima: cypress-demo/ (demo E2E, arquivos .js/.json
+      e node_modules) também fica dentro desta pasta. Não são .cs, então não
+      quebram a compilação, mas sem esta exclusão o SDK Web tentaria incluí-los
+      como Content no publish (incluindo um eventual node_modules/, que pode
+      ficar bem grande).
+    -->
+    <Content Remove="cypress-demo\**\*" />
+    <None Remove="cypress-demo\**\*" />
+  </ItemGroup>
+
 </Project>
