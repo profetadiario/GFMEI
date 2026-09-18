@@ -51,9 +51,13 @@ public class DashboardController : AutenticadoController
         // desejado, então precisa ser comparada com o lucro de fato apurado.
         var dreDoMes = await _dreService.ObterDreAsync(UsuarioId, hoje.Month, hoje.Year);
 
-        // SQLite (via EF Core) não traduz Sum/Average sobre "decimal" para SQL,
-        // então materializamos a lista com ToListAsync() e somamos em memória
-        // (LINQ to Objects) em vez de usar SumAsync diretamente na query.
+        // Materializamos a lista com ToListAsync() e somamos em memória (LINQ
+        // to Objects) em vez de usar SumAsync diretamente na query. O volume
+        // de captações por usuária é pequeno, então o custo extra é
+        // desprezível, e isso evita depender de como cada provedor do EF
+        // Core traduz Sum/Average sobre "decimal" para SQL (relevante no
+        // passado, quando o projeto ainda rodava sobre SQLite; hoje o banco
+        // é SQL Server, mas o padrão foi mantido por já estar em uso).
         var totalCaptado = (await _context.Captacoes
             .Where(c => c.UsuarioId == UsuarioId)
             .ToListAsync())
