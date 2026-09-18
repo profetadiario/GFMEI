@@ -6,6 +6,7 @@ namespace GestaoFinanceiraMEI.ViewModels;
 public class DashboardViewModel
 {
     public string NomeNegocio { get; set; } = string.Empty;
+    public string PeriodoResumo { get; set; } = string.Empty;
     public ResumoFinanceiro ResumoDoMes { get; set; } = new();
     public decimal SaldoGeral { get; set; }
     public List<ResumoMensal> HistoricoMensal { get; set; } = new();
@@ -16,5 +17,5 @@ public class DashboardViewModel
     public decimal PercentualMeta =>
         MetaDoMes is null || MetaDoMes.ValorMeta == 0
             ? 0
-            : Math.Min(100, Math.Round((ValorAlcancadoMeta / MetaDoMes.ValorMeta) * 100, 1));
+            : Math.Clamp(Math.Round((ValorAlcancadoMeta / MetaDoMes.ValorMeta) * 100, 1), 0, 100);
 }

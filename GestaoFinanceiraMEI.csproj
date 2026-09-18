@@ -20,4 +20,30 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      O projeto de testes (GestaoFinanceiraMEI.Tests) fica em uma subpasta
+      dentro desta mesma pasta. Como este é um projeto SDK-style, ele inclui
+      implicitamente todo *.cs encontrado recursivamente sob sua própria
+      pasta — sem esta exclusão, os arquivos de teste (que usam NUnit/Moq)
+      seriam compilados duas vezes: aqui (sem essas referências, causando
+      erros CS0246) e no próprio projeto de testes.
+    -->
+    <Compile Remove="GestaoFinanceiraMEI.Tests\**\*.cs" />
+    <Content Remove="GestaoFinanceiraMEI.Tests\**\*" />
+    <None Remove="GestaoFinanceiraMEI.Tests\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Mesmo motivo do bloco acima: cypress-demo/ (demo E2E, arquivos .js/.json
+      e node_modules) também fica dentro desta pasta. Não são .cs, então não
+      quebram a compilação, mas sem esta exclusão o SDK Web tentaria incluí-los
+      como Content no publish (incluindo um eventual node_modules/, que pode
+      ficar bem grande).
+    -->
+    <Content Remove="cypress-demo\**\*" />
+    <None Remove="cypress-demo\**\*" />
+  </ItemGroup>
+
 </Project>

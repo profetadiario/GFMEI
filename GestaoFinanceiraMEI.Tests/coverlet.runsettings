@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Configuração de cobertura de código (coverlet, via VSTest data collector).
+
+  Uso: dotnet test --settings coverlet.runsettings --collect:"XPlat Code Coverage"
+
+  Escopo combinado com o autor do projeto: 100% de cobertura da LÓGICA DE
+  NEGÓCIO (Controllers, Services, Models, ViewModels, Infraestrutura e Data),
+  excluindo do cálculo:
+    - Program.cs: código de inicialização/bootstrap do ASP.NET Core (DI,
+      pipeline HTTP, middlewares), que não é uma unidade testável da mesma
+      forma que uma classe de negócio — testar isso exigiria testes de
+      integração ponta a ponta com um servidor real, fora do escopo acordado.
+    - AspNetCoreGeneratedDocument.*: classes que o compilador Razor gera
+      automaticamente a partir dos arquivos .cshtml (Views). O conteúdo das
+      Views é HTML/Razor, não lógica de negócio, e não é o alvo da cobertura.
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura,opencover</Format>
+          <Exclude>[GestaoFinanceiraMEI]Program,[GestaoFinanceiraMEI]AspNetCoreGeneratedDocument.*,[GestaoFinanceiraMEI.Tests]*</Exclude>
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverage</ExcludeByAttribute>
+          <SingleHit>false</SingleHit>
+          <UseSourceLink>false</UseSourceLink>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

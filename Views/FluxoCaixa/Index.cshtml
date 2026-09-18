@@ -1,0 +1,112 @@
+@model FluxoCaixaAnual
+@{
+    ViewData["Title"] = "Fluxo de Caixa";
+
+    string F(decimal v) => v.ToString("N2");
+    string Sinal(decimal v) => v >= 0 ? "" : "-";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Fluxo de Caixa — @Model.Ano</h2>
+    <div class="btn-group">
+        <a class="btn btn-outline-secondary" asp-action="Index" asp-route-ano="@(Model.Ano - 1)">&laquo; @(Model.Ano - 1)</a>
+        <a class="btn btn-outline-secondary" asp-action="Index" asp-route-ano="@(Model.Ano + 1)">@(Model.Ano + 1) &raquo;</a>
+    </div>
+</div>
+
+<p class="text-muted">
+    Saldo acumulado mês a mês: o saldo final de um mês vira o saldo inicial do mês seguinte
+    (o saldo de janeiro já parte do que sobrou dos anos anteriores).
+</p>
+
+<div class="card card-resumo p-3">
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 fluxo-caixa-tabela">
+            <thead>
+                <tr>
+                    <th style="min-width: 220px">Descrição da Movimentação</th>
+                    @foreach (var nomeMes in Model.NomesMeses)
+                    {
+                        <th class="text-end">@nomeMes</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="fw-bold">
+                    <td>SALDO INICIAL DO MÊS</td>
+                    @for (int m = 0; m < 12; m++)
+                    {
+                        <td class="text-end">R$ @F(Model.SaldoInicial[m])</td>
+                    }
+                </tr>
+
+                <tr class="fw-bold table-light">
+                    <td>(+) ENTRADAS</td>
+                    @for (int m = 0; m < 12; m++)
+                    {
+                        <td class="text-end valor-receita">R$ @F(Model.TotalEntradas[m])</td>
+                    }
+                </tr>
+                @foreach (var linha in Model.Entradas)
+                {
+                    <tr class="linha-categoria">
+                        <td>• @linha.Nome</td>
+                        @for (int m = 0; m < 12; m++)
+                        {
+                            <td class="text-end">@(linha.Valores[m] == 0 ? "—" : $"R$ {F(linha.Valores[m])}")</td>
+                        }
+                    </tr>
+                }
+                @if (!Model.Entradas.Any())
+                {
+                    <tr class="linha-categoria">
+                        <td colspan="13" class="text-center">Nenhuma receita lançada em @Model.Ano.</td>
+                    </tr>
+                }
+
+                <tr class="fw-bold table-light">
+                    <td>(–) SAÍDAS</td>
+                    @for (int m = 0; m < 12; m++)
+                    {
+                        <td class="text-end valor-despesa">R$ @F(Model.TotalSaidas[m])</td>
+                    }
+                </tr>
+                @foreach (var linha in Model.Saidas)
+                {
+                    <tr class="linha-categoria">
+                        <td>• @linha.Nome</td>
+                        @for (int m = 0; m < 12; m++)
+                        {
+                            <td class="text-end">@(linha.Valores[m] == 0 ? "—" : $"R$ {F(linha.Valores[m])}")</td>
+                        }
+                    </tr>
+                }
+                @if (!Model.Saidas.Any())
+                {
+                    <tr class="linha-categoria">
+                        <td colspan="13" class="text-center">Nenhuma despesa lançada em @Model.Ano.</td>
+                    </tr>
+                }
+
+                <tr class="fw-bold">
+                    <td>(=) SALDO OPERACIONAL DO MÊS</td>
+                    @for (int m = 0; m < 12; m++)
+                    {
+                        <td class="text-end @(Model.SaldoOperacional[m] >= 0 ? "valor-receita" : "valor-despesa")">
+                            @(Sinal(Model.SaldoOperacional[m]))R$ @F(Math.Abs(Model.SaldoOperacional[m]))
+                        </td>
+                    }
+                </tr>
+                <tr class="fw-bold table-success">
+                    <td>(=) SALDO FINAL DO CAIXA</td>
+                    @for (int m = 0; m < 12; m++)
+                    {
+                        <td class="text-end @(Model.SaldoFinal[m] >= 0 ? "valor-receita" : "valor-despesa")">
+                            @(Sinal(Model.SaldoFinal[m]))R$ @F(Math.Abs(Model.SaldoFinal[m]))
+                        </td>
+                    }
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

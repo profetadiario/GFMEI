@@ -2,13 +2,14 @@
 
 Sistema web simples de controle financeiro para microempreendedoras individuais (MEI),
 desenvolvido em **C# / ASP.NET Core MVC** com **Entity Framework Core** e banco de dados
-**SQLite**, como protótipo do Trabalho de Conclusão de Curso *"Análise do controle
-financeiro dos microempreendimentos individuais (MEI) liderados por mulheres em
+**SQL Server (MS SQL Express)**, como protótipo do Trabalho de Conclusão de Curso *"Análise
+do controle financeiro dos microempreendimentos individuais (MEI) liderados por mulheres em
 Juiz de Fora - MG"*.
 
 ## Como executar
 
-Pré-requisitos: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) instalado.
+Pré-requisitos: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) e um SQL
+Server local (por exemplo, o LocalDB que acompanha o Visual Studio).
 
 ```bash
 cd GestaoFinanceiraMEI
@@ -16,9 +17,17 @@ dotnet restore
 dotnet run
 ```
 
-Depois, acesse `http://localhost:5100` no navegador. Na primeira execução, o banco de
-dados SQLite (`gestaofinanceira.db`) é criado automaticamente com base no modelo de
-dados (usando `Database.EnsureCreated()`), sem necessidade de rodar migrações.
+Depois, acesse `http://localhost:5100` no navegador. Na primeira execução, o esquema do
+banco de dados é criado automaticamente a partir do modelo (usando `Database.EnsureCreated()`),
+sem necessidade de rodar migrações formais do Entity Framework.
+
+> **Nota técnica:** como o sistema já está publicado com dados reais de usuárias, uma
+> eventual alteração de esquema (ex.: novas colunas) não pode depender só do
+> `EnsureCreated()`, que não altera um banco já existente. Para esses casos, o
+> `Program.cs` roda um pequeno ajuste de esquema idempotente logo na inicialização
+> (verifica se a coluna já existe antes de adicioná-la) — uma opção deliberadamente mais
+> simples do que adotar EF Core Migrations completo, adequada ao escopo de um protótipo
+> acadêmico com poucas alterações de esquema ao longo do tempo.
 
 ## Módulos do sistema
 
@@ -26,26 +35,120 @@ dados (usando `Database.EnsureCreated()`), sem necessidade de rodar migrações.
 |---|---|
 | Metas Financeiras | Planejamento financeiro |
 | Lançamentos (receitas/despesas) | Controle de custos |
-| Categorias | Classificação dos lançamentos (apoio) |
+| DRE (Demonstrativo de Resultado do Exercício) | Análise financeira / controle de custos |
+| Fluxo de Caixa (mensal, janeiro a dezembro) | Gestão de fluxo de caixa |
+| Categorias | Classificação dos lançamentos (apoio ao DRE e ao fluxo de caixa) |
 | Painel (Dashboard) | Análise financeira |
 | Captação de Recursos | Captação de recursos |
+
+O DRE e o Fluxo de Caixa foram incluídos a partir de uma rodada de revisão da
+orientadora do TCC, para que o sistema efetivamente calcule (e não apenas registre)
+o resultado financeiro do negócio mês a mês.
 
 ## Estrutura do projeto
 
 ```
-GestaoFinanceiraMEI/
-├── Controllers/     Lógica de requisição/resposta (padrão MVC)
-├── Models/           Entidades do domínio (mapeadas pelo EF Core)
-├── ViewModels/        Modelos auxiliares específicos de tela
-├── Services/          Regras de negócio (cálculo de saldo, hash de senha)
-├── Data/               Contexto do banco de dados (AppDbContext)
-├── Views/               Telas Razor (.cshtml)
-└── wwwroot/              Arquivos estáticos (CSS)
+GestaoFinanceiraMEI/                 (solução)
+├── GestaoFinanceiraMEI/             Projeto principal (ASP.NET Core MVC)
+│   ├── Controllers/     Lógica de requisição/resposta (padrão MVC)
+│   ├── Models/           Entidades do domínio (mapeadas pelo EF Core)
+│   ├── ViewModels/        Modelos auxiliares específicos de tela
+│   ├── Services/          Regras de negócio (DRE, fluxo de caixa, hash de senha)
+│   ├── Infraestrutura/     Componentes de apoio ao ASP.NET Core (ex.: model binder)
+│   ├── Data/               Contexto do banco de dados (AppDbContext)
+│   ├── Views/               Telas Razor (.cshtml)
+│   └── wwwroot/              Arquivos estáticos (CSS)
+├── GestaoFinanceiraMEI.Tests/       Projeto de testes automatizados (ver seção abaixo)
+└── cypress-demo/                     Demo E2E da jornada de uso, via Cypress (ver seção abaixo)
 ```
 
 ## Autenticação
 
 Cada MEI cria sua própria conta (e-mail + senha). As senhas são armazenadas com hash
 PBKDF2 (nunca em texto puro) e a sessão é mantida por cookie de autenticação do
-ASP.NET Core. Ao se cadastrar, um conjunto de categorias padrão de receita/despesa é
-criado automaticamente para facilitar o primeiro uso.
+ASP.NET Core. Ao se cadastrar, um conjunto de categorias padrão de receita/despesa
+(já classificadas para o DRE — ex.: Aluguel como despesa fixa, Fornecedores/Insumos
+como CMV) é criado automaticamente para facilitar o primeiro uso.
+
+## DRE e natureza das categorias
+
+Para o DRE separar corretamente Custo da Mercadoria Vendida, despesas fixas, despesas
+variáveis e deduções/impostos, cada categoria de despesa tem um campo de **natureza**
+(`Categoria.NaturezaDespesa`), definido em Categorias → Nova/Editar. Categorias de
+receita não usam esse campo. Categorias criadas antes dessa funcionalidade existir
+recebem automaticamente a natureza "Despesa variável" e podem ser reclassificadas a
+qualquer momento.
+
+## Testes automatizados e cobertura de código
+
+O projeto `GestaoFinanceiraMEI.Tests` reúne os testes automatizados (unitários e de
+integração com banco em memória) de toda a lógica de negócio do sistema: Controllers,
+Services (DRE, fluxo de caixa, hash de senha), Models, ViewModels, o model binder
+customizado (`Infraestrutura/DecimalModelBinder`) e as regras de modelagem do
+`AppDbContext` (índice único de e-mail, exclusão em cascata/restrita).
+
+**Stack de testes:** NUnit + Moq + Entity Framework Core InMemory (cada teste roda contra
+um banco em memória isolado, sem precisar de um SQL Server real).
+
+### Como rodar os testes
+
+```bash
+cd GestaoFinanceiraMEI.Tests
+dotnet test
+```
+
+### Como gerar o relatório de cobertura de código
+
+```bash
+cd GestaoFinanceiraMEI.Tests
+dotnet test --settings coverlet.runsettings --collect:"XPlat Code Coverage"
+
+# (opcional) gerar um relatório HTML navegável a partir do .cobertura.xml gerado:
+dotnet tool install -g dotnet-reportgenerator-globaltool   # só na primeira vez
+reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:"CoverageReport" -reporttypes:Html
+```
+
+O relatório HTML fica em `GestaoFinanceiraMEI.Tests/CoverageReport/index.html`.
+
+**Escopo da cobertura (100% da lógica de negócio):** o arquivo `coverlet.runsettings`
+exclui do cálculo de cobertura apenas dois pontos, que não são "lógica de negócio"
+testável da mesma forma que uma classe de domínio:
+
+- `Program.cs` — código de inicialização/bootstrap do ASP.NET Core (configuração de DI,
+  pipeline HTTP, middlewares), que exigiria um teste de integração ponta a ponta com
+  servidor real para ser exercitado, e não expressa uma regra do sistema por si só.
+- `AspNetCoreGeneratedDocument.*` — classes que o compilador Razor gera automaticamente
+  a partir das Views (`.cshtml`); é HTML/marcação, não lógica de negócio.
+
+Controllers, Services, Models, ViewModels, o `DecimalModelBinder` e o `AppDbContext`
+ficam **dentro** do escopo de cobertura e são o alvo dos mais de 190 métodos de teste
+do projeto (bem mais de 200 casos executados, já contando as variações via `[TestCase]`).
+
+## Demo de uso ponta a ponta (Cypress)
+
+A pasta `cypress-demo/` traz uma demo automatizada, via navegador, da jornada completa
+de uma usuária, com um cenário rico em dados: criar conta, cadastrar categorias próprias,
+lançar várias receitas e despesas (cobrindo CMV, despesas fixas, variáveis e deduções/
+impostos), definir metas financeiras, registrar captações de recursos e conferir os
+números no Painel, no DRE e no Fluxo de Caixa. Ao final, a sessão continua autenticada
+(sem logout) e o e-mail/senha da conta criada ficam disponíveis no terminal e em
+`cypress-demo/ultima-conta-demo.txt`, para continuar explorando manualmente. Diferente
+dos testes de `GestaoFinanceiraMEI.Tests` (que rodam sem banco real e sem navegador),
+esta demo abre o sistema de verdade no Chrome e navega pelas telas como uma usuária
+faria, servindo tanto para **mostrar o sistema funcionando** (ao vivo ou gravado em
+vídeo, útil na apresentação do TCC) quanto como um teste de regressão end-to-end real.
+
+```bash
+# 1) suba o sistema (em um terminal separado, deixe rodando):
+cd GestaoFinanceiraMEI
+dotnet run
+
+# 2) em outro terminal, rode a demo:
+cd cypress-demo
+npm install
+npm run demo:aberta    # abre o Cypress e acompanha ao vivo
+# ou
+npm run demo:gravar    # roda em modo headless e grava um vídeo em cypress/videos/
+```
+
+Mais detalhes em `cypress-demo/README.md`.

@@ -1,0 +1,13 @@
+{
+  "name": "gestaofinanceiramei-demo-cypress",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demo automatizada (Cypress) da jornada de uso do Controle Financeiro MEI: cadastro, categorias, lançamentos, metas, captação de recursos, painel, DRE e fluxo de caixa.",
+  "scripts": {
+    "demo:aberta": "cypress open",
+    "demo:gravar": "cypress run --spec cypress/e2e/jornada-completa.cy.js"
+  },
+  "devDependencies": {
+    "cypress": "^13.15.0"
+  }
+}

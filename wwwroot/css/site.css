@@ -54,3 +54,25 @@ body {
   display: inline-block;
   margin-right: 0.25rem;
 }
+
+/* Cartão escuro do gráfico de pizza do DRE, no estilo indicado pela
+   orientadora (fundo escuro, legendas e rótulos em texto claro). */
+.card-dre-grafico {
+  background-color: #16181d;
+  color: #f1f1f1;
+}
+
+.card-dre-grafico canvas {
+  max-height: 320px;
+}
+
+.fluxo-caixa-tabela th,
+.fluxo-caixa-tabela td {
+  white-space: nowrap;
+}
+
+.fluxo-caixa-tabela .linha-categoria td:first-child {
+  padding-left: 1.5rem;
+  color: #6c757d;
+  font-size: 0.9em;
+}

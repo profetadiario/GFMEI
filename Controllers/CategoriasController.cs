@@ -31,7 +31,7 @@ public class CategoriasController : AutenticadoController
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Nome,Tipo")] Categoria categoria)
+    public async Task<IActionResult> Create([Bind("Nome,Tipo,NaturezaDespesa")] Categoria categoria)
     {
         if (!ModelState.IsValid)
             return View(categoria);
@@ -55,7 +55,7 @@ public class CategoriasController : AutenticadoController
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Tipo")] Categoria categoria)
+    public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Tipo,NaturezaDespesa")] Categoria categoria)
     {
         if (id != categoria.Id) return NotFound();
 
@@ -68,6 +68,7 @@ public class CategoriasController : AutenticadoController
 
         categoriaExistente.Nome = categoria.Nome;
         categoriaExistente.Tipo = categoria.Tipo;
+        categoriaExistente.NaturezaDespesa = categoria.NaturezaDespesa;
 
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));

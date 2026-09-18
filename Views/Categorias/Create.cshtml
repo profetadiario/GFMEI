@@ -17,8 +17,14 @@
 
         <div class="mb-3">
             <label asp-for="Tipo" class="form-label"></label>
-            <select asp-for="Tipo" class="form-select" asp-items="Html.GetEnumSelectList<TipoTransacao>()"></select>
+            <select asp-for="Tipo" id="campoTipo" class="form-select" asp-items="Html.GetEnumSelectList<TipoTransacao>()"></select>
             <span asp-validation-for="Tipo" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3" id="campoNaturezaContainer">
+            <label asp-for="NaturezaDespesa" class="form-label"></label>
+            <select asp-for="NaturezaDespesa" class="form-select" asp-items="Html.GetEnumSelectList<NaturezaDespesa>()"></select>
+            <div class="form-text">Usada para montar o DRE. Só se aplica a categorias de despesa.</div>
         </div>
 
         <button type="submit" class="btn btn-primary">Salvar</button>
@@ -28,4 +34,13 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        function alternarCampoNatureza() {
+            const tipo = document.getElementById('campoTipo').value;
+            // TipoTransacao.Despesa == 2
+            document.getElementById('campoNaturezaContainer').style.display = (tipo === '2') ? '' : 'none';
+        }
+        document.getElementById('campoTipo').addEventListener('change', alternarCampoNatureza);
+        alternarCampoNatureza();
+    </script>
 }

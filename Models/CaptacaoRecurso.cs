@@ -22,7 +22,10 @@ public class CaptacaoRecurso
     [Display(Name = "Valor captado (R$)")]
     public decimal Valor { get; set; }
 
-    [Range(0, 100, ErrorMessage = "Informe uma taxa entre 0 e 100.")]
+    // Usa o construtor de Range baseado em decimal (em vez de Range(0, 100),
+    // que compara usando int e faz o valor ser arredondado antes da checagem
+    // — o que faria -0.01 virar 0 e 100.01 virar 100, escapando da validação).
+    [Range(typeof(decimal), "0", "100", ErrorMessage = "Informe uma taxa entre 0 e 100.")]
     [Column(TypeName = "decimal(5,2)")]
     [Display(Name = "Taxa de juros ao mês (%)")]
     public decimal TaxaJurosMensal { get; set; }

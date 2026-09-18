@@ -42,6 +42,8 @@ builder.Services.AddControllersWithViews(options =>
 
 // Serviços de domínio ------------------------------------------------
 builder.Services.AddScoped<IFluxoCaixaService, FluxoCaixaService>();
+builder.Services.AddScoped<IDreService, DreService>();
+builder.Services.AddScoped<IFluxoCaixaMensalService, FluxoCaixaMensalService>();
 
 // Autenticação por cookie ---------------------------------------------
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -101,6 +103,27 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+
+    // Ajuste de esquema idempotente ("poor man's migration") ------------
+    // O projeto usa EnsureCreated() em vez de EF Core Migrations por
+    // simplicidade (protótipo acadêmico). EnsureCreated() só cria o banco
+    // quando ele ainda não existe — não altera um banco já existente. Como
+    // o sistema já está publicado com dados reais de usuárias, a coluna
+    // NaturezaDespesa (adicionada para o cálculo do DRE) precisa ser
+    // adicionada manualmente a um banco pré-existente. Este bloco roda a
+    // cada início da aplicação, verifica se a coluna já existe e só a
+    // adiciona quando necessário — é seguro rodar repetidas vezes e não
+    // apaga nem altera nenhum dado já cadastrado (as categorias existentes
+    // recebem o valor padrão 0 = "Despesa variável", reclassificável depois
+    // em Categorias → Editar).
+    db.Database.ExecuteSqlRaw(@"
+        IF NOT EXISTS (
+            SELECT 1 FROM sys.columns
+            WHERE Name = N'NaturezaDespesa' AND Object_ID = Object_ID(N'Categorias')
+        )
+        BEGIN
+            ALTER TABLE Categorias ADD NaturezaDespesa int NOT NULL DEFAULT 0;
+        END");
 }
 
 if (!app.Environment.IsDevelopment())
