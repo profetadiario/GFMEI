@@ -29,6 +29,7 @@ public class FluxoCaixaMensalService : IFluxoCaixaMensalService
         // Saldo acumulado de todos os lançamentos anteriores a 1º de janeiro
         // do ano consultado — vira o saldo inicial de janeiro.
         var transacoesAnteriores = await _context.Transacoes
+            .AsNoTracking()
             .Where(t => t.UsuarioId == usuarioId && t.Data.Year < ano)
             .ToListAsync();
 
@@ -36,6 +37,7 @@ public class FluxoCaixaMensalService : IFluxoCaixaMensalService
             t.Tipo == TipoTransacao.Receita ? t.Valor : -t.Valor);
 
         var transacoesDoAno = await _context.Transacoes
+            .AsNoTracking()
             .Where(t => t.UsuarioId == usuarioId && t.Data.Year == ano)
             .ToListAsync();
 
@@ -46,6 +48,7 @@ public class FluxoCaixaMensalService : IFluxoCaixaMensalService
         // agrupá-lo como "Sem categoria".
         var categoriaIds = transacoesDoAno.Select(t => t.CategoriaId).Distinct().ToList();
         var nomePorCategoria = await _context.Categorias
+            .AsNoTracking()
             .Where(c => categoriaIds.Contains(c.Id))
             .ToDictionaryAsync(c => c.Id, c => c.Nome);
 

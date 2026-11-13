@@ -25,6 +25,7 @@ public class DreService : IDreService
         // com ToListAsync() e somamos em memória (mesma estratégia já usada
         // no restante do sistema para evitar problemas de tradução de LINQ).
         var transacoesDoMes = await _context.Transacoes
+            .AsNoTracking()
             .Where(t => t.UsuarioId == usuarioId && t.Data.Month == mes && t.Data.Year == ano)
             .ToListAsync();
 
@@ -35,6 +36,7 @@ public class DreService : IDreService
         // do cálculo em vez de classificá-lo como despesa variável.
         var categoriaIds = transacoesDoMes.Select(t => t.CategoriaId).Distinct().ToList();
         var naturezaPorCategoria = await _context.Categorias
+            .AsNoTracking()
             .Where(c => categoriaIds.Contains(c.Id))
             .ToDictionaryAsync(c => c.Id, c => c.NaturezaDespesa);
 

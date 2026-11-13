@@ -69,9 +69,44 @@ builder.Services.AddHttpContextAccessor();
 
 // Limitação de taxa de requisições (proteção básica contra força bruta e
 // varreduras automatizadas) ------------------------------------------
+// Os limites são POR IP. Uma sala de aula ou um escritório costuma sair para
+// a internet por um único IP, então os valores abaixo foram dimensionados para
+// uma turma inteira usando o sistema ao mesmo tempo — sem deixar de barrar
+// scripts que disparam centenas de requisições seguidas.
+const int LimiteGeralPorJanela = 100;   // requisições a cada 10 s, por IP
+const int LimiteLoginPorMinuto = 40;    // cadastros + logins por minuto, por IP
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Em vez de uma tela em branco, mostra uma mensagem amigável pedindo
+    // para aguardar alguns segundos e tentar de novo.
+    options.OnRejected = async (contexto, cancellationToken) =>
+    {
+        var resposta = contexto.HttpContext.Response;
+        resposta.StatusCode = StatusCodes.Status429TooManyRequests;
+        resposta.ContentType = "text/html; charset=utf-8";
+
+        var segundos = 30;
+        if (contexto.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            segundos = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds));
+        }
+        resposta.Headers.RetryAfter = segundos.ToString(CultureInfo.InvariantCulture);
+
+        await resposta.WriteAsync(
+            "<!DOCTYPE html><html lang=\"pt-BR\"><head><meta charset=\"utf-8\">" +
+            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+            "<title>Muitos acessos</title></head>" +
+            "<body style=\"font-family:sans-serif;max-width:32rem;margin:4rem auto;padding:0 1rem;text-align:center\">" +
+            "<h1>Muitos acessos ao mesmo tempo</h1>" +
+            "<p>O sistema recebeu muitas requisições deste endereço em pouco tempo.</p>" +
+            $"<p>Aguarde cerca de <strong>{segundos} segundos</strong> e tente novamente.</p>" +
+            "<p><a href=\"/\">Voltar para a página inicial</a></p>" +
+            "</body></html>",
+            cancellationToken);
+    };
 
     // Limite global por IP: não afeta o uso normal de uma pessoa navegando,
     // mas barra scripts/scanners que disparam muitas requisições seguidas.
@@ -80,19 +115,26 @@ builder.Services.AddRateLimiter(options =>
         var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "desconhecido";
         return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 60,
+            PermitLimit = LimiteGeralPorJanela,
             Window = TimeSpan.FromSeconds(10),
             QueueLimit = 0
         });
     });
 
-    // Limite mais restrito específico para login/cadastro, contra
-    // tentativas de força bruta de senha ou spam de contas.
-    options.AddFixedWindowLimiter("login", opt =>
+    // Limite mais restrito específico para login/cadastro, contra tentativas
+    // de força bruta de senha ou spam de contas. Antes era um único balde
+    // compartilhado por TODOS os usuários (5 por minuto no servidor inteiro),
+    // o que bloqueava uma turma inteira tentando entrar ao mesmo tempo; agora
+    // cada IP tem o seu próprio balde.
+    options.AddPolicy("login", httpContext =>
     {
-        opt.PermitLimit = 5;
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.QueueLimit = 0;
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "desconhecido";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = LimiteLoginPorMinuto,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        });
     });
 });
 

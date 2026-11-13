@@ -41,6 +41,7 @@ public class DashboardController : AutenticadoController
         var periodoResumo = hoje.Month == 1 ? nomeMesInicio : $"{nomeMesInicio} A {nomeMesFim}";
 
         var metaDoMes = await _context.Metas
+            .AsNoTracking()
             .Where(m => m.UsuarioId == UsuarioId
                         && m.MesReferencia.Month == hoje.Month
                         && m.MesReferencia.Year == hoje.Year)
@@ -59,6 +60,7 @@ public class DashboardController : AutenticadoController
         // passado, quando o projeto ainda rodava sobre SQLite; hoje o banco
         // é SQL Server, mas o padrão foi mantido por já estar em uso).
         var totalCaptado = (await _context.Captacoes
+            .AsNoTracking()
             .Where(c => c.UsuarioId == UsuarioId)
             .ToListAsync())
             .Sum(c => c.Valor);

@@ -62,10 +62,11 @@ npm run demo:gravar
   guarda as credenciais só da última vez que a demo rodou, não um
   histórico. Esse arquivo não vai para o Git (está no `.gitignore`), já que
   guarda uma senha, mesmo sendo uma senha de teste descartável.
-- O sistema tem um limite de 5 tentativas de cadastro/login por minuto por
-  IP (`GestaoFinanceiraMEI/Program.cs`, política `"login"`, proteção contra
-  força bruta) — rodar a demo em sequência muito rápida (menos de um minuto
-  entre execuções) pode eventualmente esbarrar nesse limite.
+- O sistema limita cadastros/logins por minuto **por IP**
+  (`GestaoFinanceiraMEI/Program.cs`, política `"login"`, proteção contra
+  força bruta; hoje 40 por minuto). A demo usa só 2 a 3 dessas requisições
+  por execução, então o limite não atrapalha, mesmo rodando várias vezes
+  seguidas.
 - Os seletores usam os `id`s gerados pelo próprio `asp-for` do ASP.NET Core
   MVC (ex.: `#Email`, `#Senha`) — se os nomes das propriedades nos
   ViewModels/Models ou os textos das Views mudarem, os passos correspondentes

@@ -19,24 +19,27 @@ public class FluxoCaixaService : IFluxoCaixaService
 
     public async Task<ResumoFinanceiro> ObterResumoAsync(int usuarioId, int? mes = null, int? ano = null)
     {
-        var query = _context.Transacoes.Where(t => t.UsuarioId == usuarioId);
+        // Uma única consulta, somente leitura (AsNoTracking), traz todos os
+        // lançamentos da usuária. Os totais do período (filtrados por mês/ano)
+        // e o histórico mensal saem da mesma lista em memória — antes eram
+        // duas idas ao banco, e o Painel chama este método duas vezes.
+        var todasTransacoes = await _context.Transacoes
+            .AsNoTracking()
+            .Where(t => t.UsuarioId == usuarioId)
+            .ToListAsync();
+
+        IEnumerable<Transacao> transacoesFiltradas = todasTransacoes;
 
         if (mes.HasValue)
-            query = query.Where(t => t.Data.Month == mes.Value);
+            transacoesFiltradas = transacoesFiltradas.Where(t => t.Data.Month == mes.Value);
         if (ano.HasValue)
-            query = query.Where(t => t.Data.Year == ano.Value);
-
-        var transacoesFiltradas = await query.ToListAsync();
+            transacoesFiltradas = transacoesFiltradas.Where(t => t.Data.Year == ano.Value);
 
         var resumo = new ResumoFinanceiro
         {
             TotalReceitas = transacoesFiltradas.Where(t => t.Tipo == TipoTransacao.Receita).Sum(t => t.Valor),
             TotalDespesas = transacoesFiltradas.Where(t => t.Tipo == TipoTransacao.Despesa).Sum(t => t.Valor)
         };
-
-        var todasTransacoes = await _context.Transacoes
-            .Where(t => t.UsuarioId == usuarioId)
-            .ToListAsync();
 
         resumo.HistoricoMensal = todasTransacoes
             .GroupBy(t => new { t.Data.Year, t.Data.Month })
