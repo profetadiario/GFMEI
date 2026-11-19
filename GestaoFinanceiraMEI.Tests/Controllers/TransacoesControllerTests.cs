@@ -115,8 +115,8 @@ public class TransacoesControllerTests
     [Test]
     public async Task Create_Post_ModelStateInvalidoPorOutroMotivo_RecarregaCategorias_ERetornaView()
     {
-        var transacao = new Transacao { Descricao = "", Valor = 10m, Tipo = TipoTransacao.Receita, Data = DateTime.Today, CategoriaId = _categoriaReceitaId };
-        _controller.ModelState.AddModelError("Descricao", "Informe uma descrição.");
+        var transacao = new Transacao { Descricao = "X", Valor = 0m, Tipo = TipoTransacao.Receita, Data = DateTime.Today, CategoriaId = _categoriaReceitaId };
+        _controller.ModelState.AddModelError("Valor", "O valor deve ser maior que zero.");
 
         var resultado = await _controller.Create(transacao) as ViewResult;
 
@@ -252,5 +252,175 @@ public class TransacoesControllerTests
 
         Assert.That(resultado, Is.Not.Null);
         Assert.That(await _context.Transacoes.FindAsync(transacao.Id), Is.Null);
+    }
+
+    // ---------------------------------------------------------------
+    // Lançamento rápido: descrição opcional, "salvar e lançar outro"
+    // e retirada pessoal (pró-labore)
+    // ---------------------------------------------------------------
+
+    [Test]
+    public async Task Create_Post_DescricaoVazia_UsaONomeDaCategoria()
+    {
+        var transacao = new Transacao { Descricao = "", Valor = 80m, Tipo = TipoTransacao.Despesa, Data = DateTime.Today, CategoriaId = _categoriaDespesaId };
+        // Simula o erro "Descrição obrigatória" que o MVC registra antes da action.
+        _controller.ModelState.AddModelError("Descricao", "Informe uma descrição.");
+
+        var resultado = await _controller.Create(transacao) as RedirectToActionResult;
+
+        Assert.That(resultado, Is.Not.Null);
+        Assert.That((await _context.Transacoes.SingleAsync()).Descricao, Is.EqualTo("Aluguel"));
+    }
+
+    [Test]
+    public async Task Create_Post_DescricaoInformada_NaoESubstituida()
+    {
+        var transacao = new Transacao { Descricao = "Aluguel de novembro", Valor = 80m, Tipo = TipoTransacao.Despesa, Data = DateTime.Today, CategoriaId = _categoriaDespesaId };
+
+        await _controller.Create(transacao);
+
+        Assert.That((await _context.Transacoes.SingleAsync()).Descricao, Is.EqualTo("Aluguel de novembro"));
+    }
+
+    [Test]
+    public async Task Create_Post_AcaoOutro_SalvaERedirecionaParaNovoLancamento_ComMensagem()
+    {
+        var transacao = new Transacao { Descricao = "Venda", Valor = 100m, Tipo = TipoTransacao.Receita, Data = DateTime.Today, CategoriaId = _categoriaReceitaId };
+
+        var resultado = await _controller.Create(transacao, acao: "outro") as RedirectToActionResult;
+
+        Assert.That(resultado, Is.Not.Null);
+        Assert.That(resultado!.ActionName, Is.EqualTo("Create"));
+        Assert.That(_controller.TempData["Sucesso"], Is.EqualTo("Lançamento salvo. Pode lançar o próximo."));
+        Assert.That(await _context.Transacoes.CountAsync(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Create_Post_OrigemPessoal_EmDespesa_CriaCategoriaRetiradaPessoal_ELancaNela()
+    {
+        // Sem CategoriaId e sem descrição: o sistema escolhe a categoria.
+        var transacao = new Transacao { Descricao = "", Valor = 500m, Tipo = TipoTransacao.Despesa, Data = DateTime.Today, CategoriaId = 0 };
+        _controller.ModelState.AddModelError("Descricao", "Informe uma descrição.");
+        _controller.ModelState.AddModelError("CategoriaId", "Selecione uma categoria.");
+
+        var resultado = await _controller.Create(transacao, origem: "pessoal") as RedirectToActionResult;
+
+        Assert.That(resultado, Is.Not.Null);
+        var categoria = await _context.Categorias.SingleAsync(c => c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal);
+        Assert.That(categoria.UsuarioId, Is.EqualTo(UsuarioId));
+        Assert.That(categoria.Tipo, Is.EqualTo(TipoTransacao.Despesa));
+        Assert.That(categoria.Nome, Is.EqualTo(TransacoesController.NomeCategoriaRetiradaPessoal));
+
+        var salva = await _context.Transacoes.SingleAsync();
+        Assert.That(salva.CategoriaId, Is.EqualTo(categoria.Id));
+        Assert.That(salva.UsuarioId, Is.EqualTo(UsuarioId));
+        Assert.That(salva.Descricao, Is.EqualTo(TransacoesController.NomeCategoriaRetiradaPessoal));
+    }
+
+    [Test]
+    public async Task Create_Post_OrigemPessoal_ReaproveitaACategoriaRetiradaPessoalJaExistente()
+    {
+        var primeira = new Transacao { Descricao = "", Valor = 100m, Tipo = TipoTransacao.Despesa, Data = DateTime.Today };
+        var segunda = new Transacao { Descricao = "", Valor = 200m, Tipo = TipoTransacao.Despesa, Data = DateTime.Today };
+
+        await _controller.Create(primeira, origem: "pessoal");
+        await _controller.Create(segunda, origem: "pessoal");
+
+        Assert.That(await _context.Categorias.CountAsync(c => c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal), Is.EqualTo(1));
+        Assert.That(await _context.Transacoes.CountAsync(), Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task Create_Post_OrigemPessoal_NaoUsaACategoriaRetiradaDeOutraUsuaria()
+    {
+        _context.Categorias.Add(new Categoria
+        {
+            Id = 600,
+            Nome = "Retirada pessoal (pró-labore)",
+            Tipo = TipoTransacao.Despesa,
+            NaturezaDespesa = NaturezaDespesa.RetiradaPessoal,
+            UsuarioId = 777
+        });
+        await _context.SaveChangesAsync();
+
+        var transacao = new Transacao { Descricao = "", Valor = 100m, Tipo = TipoTransacao.Despesa, Data = DateTime.Today };
+
+        await _controller.Create(transacao, origem: "pessoal");
+
+        var salva = await _context.Transacoes.SingleAsync();
+        Assert.That(salva.CategoriaId, Is.Not.EqualTo(600));
+        Assert.That(await _context.Categorias.CountAsync(c => c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal && c.UsuarioId == UsuarioId), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Create_Post_OrigemPessoal_EmReceita_EhIgnorada_ELancaNaCategoriaEscolhida()
+    {
+        var transacao = new Transacao { Descricao = "Venda", Valor = 100m, Tipo = TipoTransacao.Receita, Data = DateTime.Today, CategoriaId = _categoriaReceitaId };
+
+        await _controller.Create(transacao, origem: "pessoal");
+
+        var salva = await _context.Transacoes.SingleAsync();
+        Assert.That(salva.CategoriaId, Is.EqualTo(_categoriaReceitaId));
+        Assert.That(await _context.Categorias.CountAsync(c => c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal), Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task Create_Post_OrigemPessoal_ComFormularioInvalido_NaoCriaACategoria_EMantemAOrigemNaTela()
+    {
+        var transacao = new Transacao { Descricao = "", Valor = 0m, Tipo = TipoTransacao.Despesa, Data = DateTime.Today };
+        _controller.ModelState.AddModelError("Valor", "O valor deve ser maior que zero.");
+
+        var resultado = await _controller.Create(transacao, origem: "pessoal") as ViewResult;
+
+        Assert.That(resultado, Is.Not.Null);
+        Assert.That(_controller.ViewData["Origem"], Is.EqualTo("pessoal"));
+        Assert.That(await _context.Categorias.CountAsync(c => c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal), Is.EqualTo(0));
+        Assert.That(await _context.Transacoes.CountAsync(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task Create_Post_DescricaoVaziaECategoriaInvalida_ContinuaInvalido()
+    {
+        var transacao = new Transacao { Descricao = "", Valor = 10m, Tipo = TipoTransacao.Receita, Data = DateTime.Today, CategoriaId = _categoriaDespesaId };
+        _controller.ModelState.AddModelError("Descricao", "Informe uma descrição.");
+
+        var resultado = await _controller.Create(transacao) as ViewResult;
+
+        Assert.That(resultado, Is.Not.Null);
+        Assert.That(_controller.ModelState.IsValid, Is.False);
+        Assert.That(await _context.Transacoes.CountAsync(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task Index_SeparaRetiradasPessoaisDasDespesas_ENoSaldoDoMesOsDoisReduzem()
+    {
+        var retirada = new Categoria
+        {
+            Nome = "Retirada pessoal (pró-labore)",
+            Tipo = TipoTransacao.Despesa,
+            NaturezaDespesa = NaturezaDespesa.RetiradaPessoal,
+            UsuarioId = UsuarioId
+        };
+        _context.Categorias.Add(retirada);
+        _context.SaveChanges();
+
+        var hoje = DateTime.Today;
+        AdicionarTransacao(_categoriaReceitaId, TipoTransacao.Receita, 1000m, hoje);
+        AdicionarTransacao(_categoriaDespesaId, TipoTransacao.Despesa, 300m, hoje);
+        AdicionarTransacao(retirada.Id, TipoTransacao.Despesa, 200m, hoje);
+
+        await _controller.Index(null, null);
+
+        Assert.That(_controller.ViewData["TotalReceitas"], Is.EqualTo(1000m));
+        Assert.That(_controller.ViewData["TotalDespesas"], Is.EqualTo(300m));
+        Assert.That(_controller.ViewData["TotalRetiradas"], Is.EqualTo(200m));
+    }
+
+    [Test]
+    public async Task Index_SemRetiradas_TotalRetiradasEhZero()
+    {
+        await _controller.Index(null, null);
+
+        Assert.That(_controller.ViewData["TotalRetiradas"], Is.EqualTo(0m));
     }
 }

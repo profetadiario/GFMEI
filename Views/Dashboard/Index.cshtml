@@ -4,32 +4,47 @@
     var labels = System.Text.Json.JsonSerializer.Serialize(Model.HistoricoMensal.Select(h => h.Mes));
     var receitas = System.Text.Json.JsonSerializer.Serialize(Model.HistoricoMensal.Select(h => h.Receitas));
     var despesas = System.Text.Json.JsonSerializer.Serialize(Model.HistoricoMensal.Select(h => h.Despesas));
+    var gastosRotulos = System.Text.Json.JsonSerializer.Serialize(Model.GastosPorCategoria.Select(g => g.Categoria));
+    var gastosValores = System.Text.Json.JsonSerializer.Serialize(Model.GastosPorCategoria.Select(g => g.Valor));
 }
 
 <h2 class="mb-1">Olá, @Model.NomeNegocio 👋</h2>
 <p class="text-muted mb-4">Resumo financeiro do seu negócio — @Model.PeriodoResumo</p>
 
+@if (Model.MensagemLembrete is not null)
+{
+    <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2" role="alert">
+        <span>@Model.MensagemLembrete</span>
+        <a class="btn btn-sm btn-primary" asp-controller="Transacoes" asp-action="Create">Lançar agora</a>
+    </div>
+}
+
+<div class="card card-resumo saldo-destaque p-4 mb-4 text-center">
+    <span class="text-muted">Saldo geral — o que você tem em caixa agora</span>
+    <span class="valor-saldo @(Model.SaldoGeral >= 0 ? "valor-receita" : "valor-despesa")">R$ @Model.SaldoGeral.ToString("N2")</span>
+</div>
+
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card card-resumo p-3">
+    <div class="col-6 col-md-3">
+        <div class="card card-resumo p-3 h-100">
             <span class="text-muted small">Receitas no período</span>
             <span class="valor valor-receita">R$ @Model.ResumoDoMes.TotalReceitas.ToString("N2")</span>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card card-resumo p-3">
+    <div class="col-6 col-md-3">
+        <div class="card card-resumo p-3 h-100">
             <span class="text-muted small">Despesas no período</span>
             <span class="valor valor-despesa">R$ @Model.ResumoDoMes.TotalDespesas.ToString("N2")</span>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card card-resumo p-3">
-            <span class="text-muted small">Saldo geral</span>
-            <span class="valor @(Model.SaldoGeral >= 0 ? "valor-receita" : "valor-despesa")">R$ @Model.SaldoGeral.ToString("N2")</span>
+    <div class="col-6 col-md-3">
+        <div class="card card-resumo p-3 h-100">
+            <span class="text-muted small">Retiradas pessoais (pró-labore) no período</span>
+            <span class="valor">R$ @Model.ResumoDoMes.TotalRetiradasPessoais.ToString("N2")</span>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card card-resumo p-3">
+    <div class="col-6 col-md-3">
+        <div class="card card-resumo p-3 h-100">
             <span class="text-muted small">Total captado (recursos)</span>
             <span class="valor">R$ @Model.TotalCaptado.ToString("N2")</span>
         </div>
@@ -68,6 +83,24 @@
     </div>
 </div>
 
+<div class="row g-3 mt-1">
+    <div class="col-12">
+        <div class="card card-resumo p-3">
+            <h5>Para onde foi o dinheiro este mês</h5>
+            <p class="mb-3">@Model.FraseMaiorGasto</p>
+            @if (Model.GastosPorCategoria.Any())
+            {
+                <div class="grafico-categorias">
+                    <canvas id="graficoGastosCategoria"></canvas>
+                </div>
+                <p class="text-muted small mt-3 mb-0">
+                    Só despesas do negócio. As retiradas pessoais (pró-labore) ficam de fora deste gráfico.
+                </p>
+            }
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
@@ -94,5 +127,23 @@
                 scales: { y: { beginAtZero: true } }
             }
         });
+
+        const canvasGastos = document.getElementById('graficoGastosCategoria');
+        if (canvasGastos) {
+            new Chart(canvasGastos, {
+                type: 'doughnut',
+                data: {
+                    labels: @Html.Raw(gastosRotulos),
+                    datasets: [{
+                        data: @Html.Raw(gastosValores),
+                        backgroundColor: ['#6f2c91', '#1e88e5', '#f9a825', '#00897b', '#ef6c00', '#6d4c41']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
     </script>
 }

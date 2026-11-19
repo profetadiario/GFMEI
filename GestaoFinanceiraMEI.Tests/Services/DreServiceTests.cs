@@ -192,4 +192,32 @@ public class DreServiceTests
 
         Assert.That(dre.ReceitaBrutaTotal, Is.EqualTo(0));
     }
+
+    [Test]
+    public async Task ObterDreAsync_RetiradaPessoal_NaoEntraEmNenhumaLinhaDoDre_NemAlteraOLucroLiquido()
+    {
+        // Pró-labore é dinheiro que a empreendedora tira do negócio para uso
+        // próprio: não é despesa do negócio, então não pode reduzir o lucro.
+        const int categoriaRetirada = 50;
+        _context.Categorias.Add(new Categoria
+        {
+            Id = categoriaRetirada,
+            Nome = "Retirada pessoal (pró-labore)",
+            Tipo = TipoTransacao.Despesa,
+            NaturezaDespesa = NaturezaDespesa.RetiradaPessoal,
+            UsuarioId = UsuarioId
+        });
+        _context.SaveChanges();
+
+        AdicionarTransacao(CategoriaVendas, TipoTransacao.Receita, 1000m, 3, 2026);
+        AdicionarTransacao(CategoriaDespesaFixa, TipoTransacao.Despesa, 200m, 3, 2026);
+        AdicionarTransacao(categoriaRetirada, TipoTransacao.Despesa, 700m, 3, 2026);
+
+        var dre = await _service.ObterDreAsync(UsuarioId, 3, 2026);
+
+        Assert.That(dre.ReceitaBrutaTotal, Is.EqualTo(1000m));
+        Assert.That(dre.DespesasFixas, Is.EqualTo(200m));
+        Assert.That(dre.DespesasVariaveis, Is.EqualTo(0m));
+        Assert.That(dre.LucroLiquido, Is.EqualTo(800m)); // 1000 - 200, sem descontar os 700 da retirada
+    }
 }

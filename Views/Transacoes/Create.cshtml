@@ -1,51 +1,126 @@
 @model Transacao
 @{
     ViewData["Title"] = "Novo lançamento";
+    var origemAtual = ViewData["Origem"] as string ?? "negocio";
 }
 
-<h2 class="mb-4">Novo lançamento</h2>
+<h2 class="mb-3">Novo lançamento</h2>
 
-<div class="card card-resumo p-4 col-md-6">
+<div class="card card-resumo p-3 p-md-4 col-lg-6">
     <form asp-action="Create" method="post">
         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
         <div class="mb-3">
-            <label asp-for="Descricao" class="form-label"></label>
-            <input asp-for="Descricao" class="form-control" />
-            <span asp-validation-for="Descricao" class="text-danger"></span>
-        </div>
-
-        <div class="mb-3">
-            <label asp-for="Tipo" class="form-label"></label>
-            <select asp-for="Tipo" class="form-select" asp-items="Html.GetEnumSelectList<TipoTransacao>()"></select>
+            <label asp-for="Tipo" class="form-label">Entrada ou saída?</label>
+            <select asp-for="Tipo" class="form-select form-select-lg" asp-items="Html.GetEnumSelectList<TipoTransacao>()"></select>
             <span asp-validation-for="Tipo" class="text-danger"></span>
         </div>
 
         <div class="mb-3">
+            <label asp-for="Valor" class="form-label"></label>
+            <input asp-for="Valor" type="text" inputmode="decimal" class="form-control form-control-lg" placeholder="Ex.: 150,00" autofocus />
+            <span asp-validation-for="Valor" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3" id="blocoCategoria">
             <label asp-for="CategoriaId" class="form-label"></label>
-            <select asp-for="CategoriaId" class="form-select" asp-items="(IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Categorias">
+            <select asp-for="CategoriaId" class="form-select form-select-lg" asp-items="(IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Categorias">
                 <option value="">Selecione...</option>
             </select>
             <span asp-validation-for="CategoriaId" class="text-danger"></span>
         </div>
 
-        <div class="mb-3">
-            <label asp-for="Valor" class="form-label"></label>
-            <input asp-for="Valor" type="text" inputmode="decimal" class="form-control" placeholder="Ex.: 1500,00" />
-            <span asp-validation-for="Valor" class="text-danger"></span>
+        <div class="mb-3" id="blocoOrigem" style="display:none">
+            <label class="form-label d-block">De onde saiu o dinheiro?</label>
+            <div class="btn-group w-100" role="group" aria-label="Origem da saída">
+                @if (origemAtual == "pessoal")
+                {
+                    <input type="radio" class="btn-check" name="origem" id="origemNegocio" value="negocio" autocomplete="off" />
+                    <label class="btn btn-outline-primary" for="origemNegocio">Do negócio</label>
+                    <input type="radio" class="btn-check" name="origem" id="origemPessoal" value="pessoal" autocomplete="off" checked />
+                    <label class="btn btn-outline-primary" for="origemPessoal">Pessoal (pró-labore)</label>
+                }
+                else
+                {
+                    <input type="radio" class="btn-check" name="origem" id="origemNegocio" value="negocio" autocomplete="off" checked />
+                    <label class="btn btn-outline-primary" for="origemNegocio">Do negócio</label>
+                    <input type="radio" class="btn-check" name="origem" id="origemPessoal" value="pessoal" autocomplete="off" />
+                    <label class="btn btn-outline-primary" for="origemPessoal">Pessoal (pró-labore)</label>
+                }
+            </div>
+            <div class="form-text">
+                "Pessoal" é o dinheiro que você tirou do negócio para uso próprio. Ele não entra como despesa
+                no resultado do mês (DRE), mas diminui o saldo em caixa.
+            </div>
         </div>
 
         <div class="mb-3">
+            <label for="Descricao" class="form-label">Descrição <span class="text-muted">(opcional)</span></label>
+            <input type="text" id="Descricao" name="Descricao" value="@Model.Descricao" maxlength="150" class="form-control" placeholder="Se deixar em branco, usamos o nome da categoria" />
+            <span asp-validation-for="Descricao" class="text-danger"></span>
+        </div>
+
+        <div class="mb-4">
             <label asp-for="Data" class="form-label"></label>
             <input asp-for="Data" class="form-control" />
             <span asp-validation-for="Data" class="text-danger"></span>
         </div>
 
-        <button type="submit" class="btn btn-primary">Salvar</button>
-        <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+        <div class="d-grid gap-2 d-md-flex">
+            <button type="submit" class="btn btn-primary btn-lg">Salvar</button>
+            <button type="submit" name="acao" value="outro" class="btn btn-outline-primary btn-lg">Salvar e lançar outro</button>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+        </div>
     </form>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var selectTipo = document.getElementById('Tipo');
+            var selectCategoria = document.getElementById('CategoriaId');
+            var blocoOrigem = document.getElementById('blocoOrigem');
+            var blocoCategoria = document.getElementById('blocoCategoria');
+            var radioNegocio = document.getElementById('origemNegocio');
+            var radioPessoal = document.getElementById('origemPessoal');
+
+            // Guarda todas as categorias para mostrar só as do tipo escolhido
+            // (o texto de cada uma termina em "(Receita)" ou "(Despesa)").
+            var todasCategorias = Array.prototype.map.call(selectCategoria.options, function (opcao) {
+                return { value: opcao.value, text: opcao.text };
+            });
+
+            function filtrarCategorias(valorDesejado) {
+                var sufixo = selectTipo.value === '2' ? '(Despesa)' : '(Receita)';
+                selectCategoria.innerHTML = '';
+                todasCategorias.forEach(function (categoria) {
+                    var combina = categoria.value === '' || categoria.text.slice(-sufixo.length) === sufixo;
+                    if (combina) {
+                        var opcao = document.createElement('option');
+                        opcao.value = categoria.value;
+                        opcao.textContent = categoria.text;
+                        if (categoria.value === valorDesejado) {
+                            opcao.selected = true;
+                        }
+                        selectCategoria.appendChild(opcao);
+                    }
+                });
+            }
+
+            function atualizarTela(valorCategoria) {
+                var despesa = selectTipo.value === '2';
+                var pessoal = despesa && radioPessoal.checked;
+                blocoOrigem.style.display = despesa ? '' : 'none';
+                blocoCategoria.style.display = pessoal ? 'none' : '';
+                filtrarCategorias(valorCategoria);
+            }
+
+            selectTipo.addEventListener('change', function () { atualizarTela(''); });
+            radioNegocio.addEventListener('change', function () { atualizarTela(selectCategoria.value); });
+            radioPessoal.addEventListener('change', function () { atualizarTela(selectCategoria.value); });
+
+            atualizarTela(selectCategoria.value);
+        })();
+    </script>
 }

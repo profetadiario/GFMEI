@@ -76,3 +76,17 @@ body {
   color: #6c757d;
   font-size: 0.9em;
 }
+
+/* Saldo em destaque no topo do Painel. */
+.saldo-destaque .valor-saldo {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Gráfico de gastos por categoria: rosca centralizada, sem ocupar a tela toda. */
+.grafico-categorias {
+  max-width: 380px;
+  margin: 0 auto;
+}

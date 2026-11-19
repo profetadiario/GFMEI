@@ -147,4 +147,196 @@ public class FluxoCaixaServiceTests
         Assert.That(resumo.TotalReceitas, Is.EqualTo(200m));
         Assert.That(resumo.HistoricoMensal, Has.Count.EqualTo(2));
     }
+
+    // ---------------------------------------------------------------
+    // Retirada pessoal (pró-labore): fora de "Despesas", dentro do saldo
+    // ---------------------------------------------------------------
+
+    private const int CategoriaRetiradaPessoal = 10;
+
+    private void AdicionarCategoriaRetiradaPessoal(int usuarioId = UsuarioId, int id = CategoriaRetiradaPessoal)
+    {
+        _context.Categorias.Add(new Categoria
+        {
+            Id = id,
+            Nome = "Retirada pessoal (pró-labore)",
+            Tipo = TipoTransacao.Despesa,
+            NaturezaDespesa = NaturezaDespesa.RetiradaPessoal,
+            UsuarioId = usuarioId
+        });
+        _context.SaveChanges();
+    }
+
+    [Test]
+    public async Task ObterResumoAsync_RetiradaPessoal_FicaForaDeDespesas_MasReduzOSaldo()
+    {
+        AdicionarCategoriaRetiradaPessoal();
+        AdicionarTransacao(UsuarioId, 1, TipoTransacao.Receita, 1000m, new DateTime(2026, 3, 10));
+        AdicionarTransacao(UsuarioId, 2, TipoTransacao.Despesa, 300m, new DateTime(2026, 3, 15));
+        AdicionarTransacao(UsuarioId, CategoriaRetiradaPessoal, TipoTransacao.Despesa, 200m, new DateTime(2026, 3, 20));
+
+        var resumo = await _service.ObterResumoAsync(UsuarioId);
+
+        Assert.That(resumo.TotalReceitas, Is.EqualTo(1000m));
+        Assert.That(resumo.TotalDespesas, Is.EqualTo(300m));
+        Assert.That(resumo.TotalRetiradasPessoais, Is.EqualTo(200m));
+        Assert.That(resumo.Saldo, Is.EqualTo(500m));
+    }
+
+    [Test]
+    public async Task ObterResumoAsync_RetiradaPessoal_AparecePropriaLinhaNoHistoricoMensal()
+    {
+        AdicionarCategoriaRetiradaPessoal();
+        AdicionarTransacao(UsuarioId, 2, TipoTransacao.Despesa, 300m, new DateTime(2026, 3, 15));
+        AdicionarTransacao(UsuarioId, CategoriaRetiradaPessoal, TipoTransacao.Despesa, 200m, new DateTime(2026, 3, 20));
+
+        var resumo = await _service.ObterResumoAsync(UsuarioId);
+
+        Assert.That(resumo.HistoricoMensal, Has.Count.EqualTo(1));
+        Assert.That(resumo.HistoricoMensal[0].Despesas, Is.EqualTo(300m));
+        Assert.That(resumo.HistoricoMensal[0].RetiradasPessoais, Is.EqualTo(200m));
+    }
+
+    [Test]
+    public async Task ObterResumoAsync_RetiradaPessoalDeOutraUsuaria_NaoAfetaOResumoDestaUsuaria()
+    {
+        // A categoria de retirada da outra usuária tem outro Id: um lançamento
+        // desta usuária em categoria comum continua sendo despesa do negócio.
+        AdicionarCategoriaRetiradaPessoal(OutraUsuariaId, 11);
+        AdicionarTransacao(UsuarioId, 2, TipoTransacao.Despesa, 300m, new DateTime(2026, 3, 15));
+        AdicionarTransacao(OutraUsuariaId, 11, TipoTransacao.Despesa, 999m, new DateTime(2026, 3, 15));
+
+        var resumo = await _service.ObterResumoAsync(UsuarioId);
+
+        Assert.That(resumo.TotalDespesas, Is.EqualTo(300m));
+        Assert.That(resumo.TotalRetiradasPessoais, Is.EqualTo(0m));
+    }
+
+    // ---------------------------------------------------------------
+    // ObterPainelAsync: tudo o que o Painel precisa em uma leitura
+    // ---------------------------------------------------------------
+
+    private static readonly DateTime HojeFixo = new(2026, 11, 18);
+
+    private void AdicionarCategoriaDespesa(int id, string nome, int usuarioId = UsuarioId)
+    {
+        _context.Categorias.Add(new Categoria { Id = id, Nome = nome, Tipo = TipoTransacao.Despesa, UsuarioId = usuarioId });
+        _context.SaveChanges();
+    }
+
+    [Test]
+    public async Task ObterPainelAsync_SemLancamentos_RetornaTudoVazio()
+    {
+        var painel = await _service.ObterPainelAsync(UsuarioId, HojeFixo);
+
+        Assert.That(painel.ResumoAnoCorrente.Saldo, Is.EqualTo(0m));
+        Assert.That(painel.ResumoGeral.Saldo, Is.EqualTo(0m));
+        Assert.That(painel.GastosPorCategoriaDoMes, Is.Empty);
+        Assert.That(painel.MaiorGastoDoMes, Is.Null);
+        Assert.That(painel.UltimoLancamento, Is.Null);
+    }
+
+    [Test]
+    public async Task ObterPainelAsync_SeparaResumoDoAnoCorrenteDoResumoGeral()
+    {
+        AdicionarTransacao(UsuarioId, 1, TipoTransacao.Receita, 400m, new DateTime(2025, 6, 10));
+        AdicionarTransacao(UsuarioId, 1, TipoTransacao.Receita, 1000m, new DateTime(2026, 3, 10));
+        AdicionarTransacao(UsuarioId, 2, TipoTransacao.Despesa, 300m, new DateTime(2026, 3, 15));
+
+        var painel = await _service.ObterPainelAsync(UsuarioId, HojeFixo);
+
+        Assert.That(painel.ResumoAnoCorrente.TotalReceitas, Is.EqualTo(1000m));
+        Assert.That(painel.ResumoAnoCorrente.TotalDespesas, Is.EqualTo(300m));
+        Assert.That(painel.ResumoGeral.TotalReceitas, Is.EqualTo(1400m));
+        Assert.That(painel.ResumoGeral.Saldo, Is.EqualTo(1100m));
+    }
+
+    [Test]
+    public async Task ObterPainelAsync_GastosPorCategoria_SomenteDoMesCorrente_OrdenadosDoMaiorParaOMenor_ComPercentual()
+    {
+        AdicionarCategoriaDespesa(20, "Insumos");
+        AdicionarCategoriaDespesa(21, "Transporte");
+        AdicionarTransacao(UsuarioId, 20, TipoTransacao.Despesa, 600m, new DateTime(2026, 11, 3));
+        AdicionarTransacao(UsuarioId, 2, TipoTransacao.Despesa, 300m, new DateTime(2026, 11, 5));
+        AdicionarTransacao(UsuarioId, 21, TipoTransacao.Despesa, 100m, new DateTime(2026, 11, 9));
+        AdicionarTransacao(UsuarioId, 20, TipoTransacao.Despesa, 999m, new DateTime(2026, 10, 3)); // outro mês
+        AdicionarTransacao(UsuarioId, 1, TipoTransacao.Receita, 5000m, new DateTime(2026, 11, 3)); // receita não é gasto
+
+        var painel = await _service.ObterPainelAsync(UsuarioId, HojeFixo);
+
+        Assert.That(painel.GastosPorCategoriaDoMes.Select(g => g.Categoria), Is.EqualTo(new[] { "Insumos", "Aluguel", "Transporte" }));
+        Assert.That(painel.GastosPorCategoriaDoMes.Select(g => g.Valor), Is.EqualTo(new[] { 600m, 300m, 100m }));
+        Assert.That(painel.GastosPorCategoriaDoMes.Select(g => g.Percentual), Is.EqualTo(new[] { 60m, 30m, 10m }));
+        Assert.That(painel.MaiorGastoDoMes!.Categoria, Is.EqualTo("Insumos"));
+    }
+
+    [Test]
+    public async Task ObterPainelAsync_GastosPorCategoria_NaoIncluiRetiradaPessoal()
+    {
+        AdicionarCategoriaRetiradaPessoal();
+        AdicionarTransacao(UsuarioId, 2, TipoTransacao.Despesa, 300m, new DateTime(2026, 11, 5));
+        AdicionarTransacao(UsuarioId, CategoriaRetiradaPessoal, TipoTransacao.Despesa, 2000m, new DateTime(2026, 11, 6));
+
+        var painel = await _service.ObterPainelAsync(UsuarioId, HojeFixo);
+
+        Assert.That(painel.GastosPorCategoriaDoMes, Has.Count.EqualTo(1));
+        Assert.That(painel.GastosPorCategoriaDoMes[0].Categoria, Is.EqualTo("Aluguel"));
+        Assert.That(painel.GastosPorCategoriaDoMes[0].Percentual, Is.EqualTo(100m));
+        Assert.That(painel.ResumoAnoCorrente.TotalRetiradasPessoais, Is.EqualTo(2000m));
+    }
+
+    [Test]
+    public async Task ObterPainelAsync_MaisDeSeisCategorias_AgrupaAsMenoresEmOutrasCategorias_MantendoOMaiorGastoReal()
+    {
+        var valores = new[] { 700m, 600m, 500m, 400m, 300m, 200m, 100m }; // total 2800
+        for (var i = 0; i < valores.Length; i++)
+        {
+            AdicionarCategoriaDespesa(30 + i, $"Categoria {i + 1}");
+            AdicionarTransacao(UsuarioId, 30 + i, TipoTransacao.Despesa, valores[i], new DateTime(2026, 11, 2));
+        }
+
+        var painel = await _service.ObterPainelAsync(UsuarioId, HojeFixo);
+
+        Assert.That(painel.GastosPorCategoriaDoMes, Has.Count.EqualTo(6));
+        Assert.That(painel.GastosPorCategoriaDoMes[4].Categoria, Is.EqualTo("Categoria 5"));
+        Assert.That(painel.GastosPorCategoriaDoMes[5].Categoria, Is.EqualTo("Outras categorias"));
+        Assert.That(painel.GastosPorCategoriaDoMes[5].Valor, Is.EqualTo(300m)); // 200 + 100
+        Assert.That(painel.GastosPorCategoriaDoMes[5].Percentual, Is.EqualTo(10.7m)); // 300 / 2800
+        Assert.That(painel.MaiorGastoDoMes!.Categoria, Is.EqualTo("Categoria 1"));
+        Assert.That(painel.MaiorGastoDoMes.Percentual, Is.EqualTo(25m)); // 700 / 2800
+    }
+
+    [Test]
+    public async Task ObterPainelAsync_DespesaComCategoriaInexistente_VaiParaSemCategoria()
+    {
+        AdicionarTransacao(UsuarioId, 999, TipoTransacao.Despesa, 80m, new DateTime(2026, 11, 2));
+
+        var painel = await _service.ObterPainelAsync(UsuarioId, HojeFixo);
+
+        Assert.That(painel.GastosPorCategoriaDoMes, Has.Count.EqualTo(1));
+        Assert.That(painel.GastosPorCategoriaDoMes[0].Categoria, Is.EqualTo("Sem categoria"));
+    }
+
+    [Test]
+    public async Task ObterPainelAsync_UltimoLancamento_IgnoraDatasFuturas()
+    {
+        AdicionarTransacao(UsuarioId, 1, TipoTransacao.Receita, 100m, new DateTime(2026, 11, 10));
+        AdicionarTransacao(UsuarioId, 1, TipoTransacao.Receita, 100m, new DateTime(2026, 11, 30)); // agendado
+
+        var painel = await _service.ObterPainelAsync(UsuarioId, HojeFixo);
+
+        Assert.That(painel.UltimoLancamento, Is.EqualTo(new DateTime(2026, 11, 10)));
+    }
+
+    [Test]
+    public async Task ObterPainelAsync_IgnoraLancamentosDeOutraUsuaria()
+    {
+        AdicionarTransacao(OutraUsuariaId, 1, TipoTransacao.Despesa, 999m, new DateTime(2026, 11, 17));
+
+        var painel = await _service.ObterPainelAsync(UsuarioId, HojeFixo);
+
+        Assert.That(painel.ResumoGeral.TotalDespesas, Is.EqualTo(0m));
+        Assert.That(painel.GastosPorCategoriaDoMes, Is.Empty);
+        Assert.That(painel.UltimoLancamento, Is.Null);
+    }
 }

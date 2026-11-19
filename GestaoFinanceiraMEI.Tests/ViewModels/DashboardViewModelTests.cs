@@ -1,4 +1,5 @@
 using GestaoFinanceiraMEI.Models;
+using GestaoFinanceiraMEI.Services;
 using GestaoFinanceiraMEI.ViewModels;
 using NUnit.Framework;
 
@@ -90,5 +91,89 @@ public class DashboardViewModelTests
         Assert.That(viewModel.HistoricoMensal, Is.Not.Null.And.Empty);
         Assert.That(viewModel.SaldoGeral, Is.EqualTo(0));
         Assert.That(viewModel.TotalCaptado, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void ValoresPadrao_NovosCampos_NaoTemGastosNemUltimoLancamento()
+    {
+        var viewModel = new DashboardViewModel();
+
+        Assert.That(viewModel.GastosPorCategoria, Is.Not.Null.And.Empty);
+        Assert.That(viewModel.MaiorGastoDoMes, Is.Null);
+        Assert.That(viewModel.UltimoLancamento, Is.Null);
+    }
+
+    [Test]
+    public void FraseMaiorGasto_SemDespesasNoMes_AvisaQueNaoHaDespesas()
+    {
+        var viewModel = new DashboardViewModel { MaiorGastoDoMes = null };
+
+        Assert.That(viewModel.FraseMaiorGasto, Is.EqualTo("Você ainda não registrou despesas neste mês."));
+    }
+
+    [Test]
+    public void FraseMaiorGasto_ComMaiorGasto_UsaCategoriaValorEPercentualEmPtBr()
+    {
+        var viewModel = new DashboardViewModel
+        {
+            MaiorGastoDoMes = new GastoPorCategoria { Categoria = "Insumos", Valor = 1200m, Percentual = 35.0m }
+        };
+
+        Assert.That(viewModel.FraseMaiorGasto, Is.EqualTo("Seu maior gasto este mês foi Insumos: R$ 1.200,00, 35% das saídas."));
+    }
+
+    [Test]
+    public void DiasSemLancar_NuncaLancou_EhNulo()
+    {
+        var viewModel = new DashboardViewModel { UltimoLancamento = null };
+
+        Assert.That(viewModel.DiasSemLancar, Is.Null);
+    }
+
+    [Test]
+    public void DiasSemLancar_ContaOsDiasCorridosDesdeOUltimoLancamento()
+    {
+        var referencia = new DateTime(2026, 11, 18);
+        var viewModel = new DashboardViewModel { DataReferencia = referencia, UltimoLancamento = new DateTime(2026, 11, 13) };
+
+        Assert.That(viewModel.DiasSemLancar, Is.EqualTo(5));
+    }
+
+    [Test]
+    public void DiasSemLancar_UltimoLancamentoFuturo_NaoFicaNegativo()
+    {
+        var referencia = new DateTime(2026, 11, 18);
+        var viewModel = new DashboardViewModel { DataReferencia = referencia, UltimoLancamento = new DateTime(2026, 11, 25) };
+
+        Assert.That(viewModel.DiasSemLancar, Is.EqualTo(0));
+    }
+
+    [TestCase(0)]
+    [TestCase(1)]
+    [TestCase(2)]
+    public void MensagemLembrete_ComMenosDeTresDiasSemLancar_NaoMostraAviso(int dias)
+    {
+        var referencia = new DateTime(2026, 11, 18);
+        var viewModel = new DashboardViewModel { DataReferencia = referencia, UltimoLancamento = referencia.AddDays(-dias) };
+
+        Assert.That(viewModel.MensagemLembrete, Is.Null);
+    }
+
+    [TestCase(3)]
+    [TestCase(10)]
+    public void MensagemLembrete_ComTresOuMaisDiasSemLancar_MostraQuantosDias(int dias)
+    {
+        var referencia = new DateTime(2026, 11, 18);
+        var viewModel = new DashboardViewModel { DataReferencia = referencia, UltimoLancamento = referencia.AddDays(-dias) };
+
+        Assert.That(viewModel.MensagemLembrete, Is.EqualTo($"Você não lança nada há {dias} dias."));
+    }
+
+    [Test]
+    public void MensagemLembrete_NuncaLancouNada_ConvidaAComecar()
+    {
+        var viewModel = new DashboardViewModel { UltimoLancamento = null };
+
+        Assert.That(viewModel.MensagemLembrete, Is.EqualTo("Você ainda não registrou nenhum lançamento. Que tal começar agora?"));
     }
 }

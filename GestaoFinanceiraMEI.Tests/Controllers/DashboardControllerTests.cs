@@ -30,15 +30,24 @@ public class DashboardControllerTests
         _dreServiceMock = new Mock<IDreService>();
 
         _fluxoCaixaServiceMock
-            .Setup(s => s.ObterResumoAsync(UsuarioId, null, Hoje.Year))
-            .ReturnsAsync(new ResumoFinanceiro { TotalReceitas = 5000m, TotalDespesas = 2000m });
-        _fluxoCaixaServiceMock
-            .Setup(s => s.ObterResumoAsync(UsuarioId, null, null))
-            .ReturnsAsync(new ResumoFinanceiro
+            .Setup(s => s.ObterPainelAsync(UsuarioId, Hoje))
+            .ReturnsAsync(new PainelFinanceiro
             {
-                TotalReceitas = 20000m,
-                TotalDespesas = 8000m,
-                HistoricoMensal = new List<ResumoMensal> { new() { Mes = "jan/2026", Receitas = 100m, Despesas = 50m } }
+                ResumoAnoCorrente = new ResumoFinanceiro { TotalReceitas = 5000m, TotalDespesas = 2000m, TotalRetiradasPessoais = 400m },
+                ResumoGeral = new ResumoFinanceiro
+                {
+                    TotalReceitas = 20000m,
+                    TotalDespesas = 8000m,
+                    TotalRetiradasPessoais = 1000m,
+                    HistoricoMensal = new List<ResumoMensal> { new() { Mes = "jan/2026", Receitas = 100m, Despesas = 50m } }
+                },
+                GastosPorCategoriaDoMes = new List<GastoPorCategoria>
+                {
+                    new() { Categoria = "Insumos", Valor = 700m, Percentual = 70m },
+                    new() { Categoria = "Transporte", Valor = 300m, Percentual = 30m }
+                },
+                MaiorGastoDoMes = new GastoPorCategoria { Categoria = "Insumos", Valor = 700m, Percentual = 70m },
+                UltimoLancamento = Hoje.AddDays(-5)
             });
         _dreServiceMock
             .Setup(d => d.ObterDreAsync(UsuarioId, Hoje.Month, Hoje.Year))
@@ -72,8 +81,40 @@ public class DashboardControllerTests
         Assert.That(modelo, Is.Not.Null);
         Assert.That(modelo!.ResumoDoMes.TotalReceitas, Is.EqualTo(5000m));
         Assert.That(modelo.ResumoDoMes.TotalDespesas, Is.EqualTo(2000m));
-        Assert.That(modelo.SaldoGeral, Is.EqualTo(12000m)); // 20000 - 8000 (resumo geral, sem filtro)
+        Assert.That(modelo.SaldoGeral, Is.EqualTo(11000m)); // 20000 - 8000 - 1000 (resumo geral, sem filtro)
         Assert.That(modelo.HistoricoMensal, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Index_RetiradasPessoais_FicamEmLinhaSeparadaDasDespesas()
+    {
+        var resultado = await _controller.Index() as ViewResult;
+        var modelo = resultado!.Model as DashboardViewModel;
+
+        Assert.That(modelo!.ResumoDoMes.TotalDespesas, Is.EqualTo(2000m));
+        Assert.That(modelo.ResumoDoMes.TotalRetiradasPessoais, Is.EqualTo(400m));
+    }
+
+    [Test]
+    public async Task Index_RepassaGastosPorCategoria_MaiorGasto_EUltimoLancamento_DoPainel()
+    {
+        var resultado = await _controller.Index() as ViewResult;
+        var modelo = resultado!.Model as DashboardViewModel;
+
+        Assert.That(modelo!.GastosPorCategoria, Has.Count.EqualTo(2));
+        Assert.That(modelo.MaiorGastoDoMes!.Categoria, Is.EqualTo("Insumos"));
+        Assert.That(modelo.UltimoLancamento, Is.EqualTo(Hoje.AddDays(-5)));
+        Assert.That(modelo.DataReferencia, Is.EqualTo(Hoje));
+        Assert.That(modelo.MensagemLembrete, Is.EqualTo("Você não lança nada há 5 dias."));
+    }
+
+    [Test]
+    public async Task Index_LeOsLancamentosEmUmaUnicaChamadaAoServico()
+    {
+        await _controller.Index();
+
+        _fluxoCaixaServiceMock.Verify(s => s.ObterPainelAsync(UsuarioId, Hoje), Times.Once);
+        _fluxoCaixaServiceMock.Verify(s => s.ObterResumoAsync(It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<int?>()), Times.Never);
     }
 
     [Test]

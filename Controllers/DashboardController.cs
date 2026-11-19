@@ -29,12 +29,13 @@ public class DashboardController : AutenticadoController
         var hoje = DateTime.Today;
         var cultura = new System.Globalization.CultureInfo("pt-BR");
 
-        // Resumo acumulado do ano corrente (janeiro até o mês atual), a
-        // pedido da orientadora: o painel deixa de mostrar só "o mês atual"
-        // isolado e passa a mostrar o acumulado do ano, reiniciando a cada
-        // janeiro.
-        var resumoAcumuladoAno = await _fluxoCaixaService.ObterResumoAsync(UsuarioId, mes: null, ano: hoje.Year);
-        var resumoGeral = await _fluxoCaixaService.ObterResumoAsync(UsuarioId);
+        // Uma única chamada reúne tudo o que sai dos lançamentos: resumo
+        // acumulado do ano corrente (janeiro até o mês atual, a pedido da
+        // orientadora, reiniciando a cada janeiro), resumo geral (saldo e
+        // histórico), gastos por categoria do mês e data do último lançamento.
+        var painel = await _fluxoCaixaService.ObterPainelAsync(UsuarioId, hoje);
+        var resumoAcumuladoAno = painel.ResumoAnoCorrente;
+        var resumoGeral = painel.ResumoGeral;
 
         var nomeMesInicio = new DateTime(hoje.Year, 1, 1).ToString("MMMM", cultura).ToUpper(cultura);
         var nomeMesFim = new DateTime(hoje.Year, hoje.Month, 1).ToString("MMMM", cultura).ToUpper(cultura);
@@ -74,7 +75,11 @@ public class DashboardController : AutenticadoController
             HistoricoMensal = resumoGeral.HistoricoMensal,
             MetaDoMes = metaDoMes,
             ValorAlcancadoMeta = dreDoMes.LucroLiquido,
-            TotalCaptado = totalCaptado
+            TotalCaptado = totalCaptado,
+            GastosPorCategoria = painel.GastosPorCategoriaDoMes,
+            MaiorGastoDoMes = painel.MaiorGastoDoMes,
+            UltimoLancamento = painel.UltimoLancamento,
+            DataReferencia = hoje
         };
 
         return View(viewModel);

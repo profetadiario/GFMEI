@@ -36,6 +36,7 @@ public class NaturezaDespesaTests
     [TestCase(NaturezaDespesa.DeducaoOuImposto, "Dedução ou imposto (ex.: DAS)")]
     [TestCase(NaturezaDespesa.CustoMercadoriaVendida, "Custo da mercadoria vendida (CMV)")]
     [TestCase(NaturezaDespesa.DespesaFixa, "Despesa fixa")]
+    [TestCase(NaturezaDespesa.RetiradaPessoal, "Retirada pessoal (pró-labore)")]
     public void CadaValor_TemODisplayNameEsperado(NaturezaDespesa valor, string nomeEsperado)
     {
         var membro = typeof(NaturezaDespesa).GetMember(valor.ToString())[0];
@@ -45,10 +46,23 @@ public class NaturezaDespesaTests
     }
 
     [Test]
-    public void Enum_TemExatamenteQuatroValores()
+    public void RetiradaPessoal_TemValorInteiroQuatro_SemAlterarOsValoresJaGravadosNoBanco()
+    {
+        // O enum é gravado como inteiro: o novo valor entra no fim (4) e os
+        // quatro anteriores mantêm seus números, então nenhuma categoria já
+        // cadastrada muda de significado e não há migração de banco.
+        Assert.That((int)NaturezaDespesa.RetiradaPessoal, Is.EqualTo(4));
+        Assert.That((int)NaturezaDespesa.DespesaVariavel, Is.EqualTo(0));
+        Assert.That((int)NaturezaDespesa.DeducaoOuImposto, Is.EqualTo(1));
+        Assert.That((int)NaturezaDespesa.CustoMercadoriaVendida, Is.EqualTo(2));
+        Assert.That((int)NaturezaDespesa.DespesaFixa, Is.EqualTo(3));
+    }
+
+    [Test]
+    public void Enum_TemExatamenteCincoValores()
     {
         var valores = Enum.GetValues<NaturezaDespesa>();
 
-        Assert.That(valores, Has.Length.EqualTo(4));
+        Assert.That(valores, Has.Length.EqualTo(5));
     }
 }
