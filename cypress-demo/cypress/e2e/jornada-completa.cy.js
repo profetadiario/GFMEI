@@ -246,6 +246,56 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
     cy.olharTela();
   });
 
+  it('Passo 11 — Calculadora de preço sugere quanto cobrar por peça', () => {
+    cy.loginComo(usuaria);
+    cy.visit('/Dashboard');
+    cy.irPeloMenu('Calculadora de preço');
+    cy.location('pathname').should('eq', '/Calculadora');
+    cy.pausa(1500);
+
+    // Peça de R$ 25,00 de material, R$ 750,00 de custos fixos divididos por
+    // 50 peças no mês, 5% de taxa da maquininha e 20% de lucro:
+    // (25 + 750/50) / (1 - 0,25) = R$ 53,33.
+    cy.get('#CustoUnitario').clear().type('25,00');
+    cy.get('#CustosFixosMes').clear().type('750,00');
+    cy.get('#QuantidadeMes').clear().type('50');
+    cy.get('#TaxasPercentual').clear().type('5');
+    cy.get('#LucroPercentual').clear().type('20');
+    cy.pausa(1000);
+    cy.contains('button', 'Calcular preço').click();
+
+    cy.get('#precoSugerido').should('contain', '53,33');
+    cy.get('#resumoMes').should('contain', '50').and('contain', '2.666,50');
+    cy.olharTela(3000);
+  });
+
+  it('Passo 12 — Relatório para o banco mostra 12 meses e quanto de parcela cabe', () => {
+    cy.loginComo(usuaria);
+    cy.visit('/Dashboard');
+    cy.irPeloMenu('Relatório para o banco');
+    cy.location('pathname').should('eq', '/Relatorio');
+
+    cy.get('#identificacao').should('contain', usuaria.nomeNegocio).and('contain', usuaria.nome);
+    cy.get('#faturamentoTotal').should('contain', '4.050,00');
+    cy.get('#sobraMedia').should('contain', '1.515,00');
+    cy.get('#parcelaConfortavel').should('contain', '454,50');
+    cy.get('#tabelaMeses tbody tr').should('have.length', 12);
+    cy.get('#dreResumida').should('contain', '1.515,00');
+    cy.pausa(2000);
+
+    // Simula uma parcela de R$ 400,00: 26,4% da sobra média, cabe com folga.
+    cy.get('#parcela').scrollIntoView({ duration: 1200, offset: { top: -200, left: 0 } });
+    cy.get('#parcela').clear().type('400,00');
+    cy.pausa(800);
+    cy.contains('button', 'Ver se cabe').click();
+    cy.get('#resultadoParcela').should('contain', 'Cabe com folga').and('contain', '26,4%');
+    cy.get('#resultadoParcela').scrollIntoView({ duration: 1200, offset: { top: -250, left: 0 } });
+    cy.pausa(3000);
+
+    cy.get('#oQueOBancoPede').should('contain', 'DASN-SIMEI');
+    cy.olharTela(3000);
+  });
+
   it('Passo final — passeio pelo Painel, DRE e Fluxo de Caixa com tudo lançado', () => {
     cy.loginComo(usuaria);
 

@@ -52,7 +52,17 @@ Cypress.Commands.add('irPeloMenu', (item) => {
       cy.pausa(900);
     }
   });
-  cy.contains('#menuPrincipal .nav-link', item).click();
+  // Itens de "Ferramentas" ficam num submenu: abre o submenu antes.
+  cy.get('#menuPrincipal').then(($menu) => {
+    const ferramenta = $menu.find('.nav-link-ferramenta').filter((_, el) => el.textContent.trim() === item);
+    if (ferramenta.length) {
+      cy.get('#menuFerramentas').click();
+      cy.pausa(700);
+      cy.contains('#menuPrincipal .dropdown-item', item).click();
+    } else {
+      cy.contains('#menuPrincipal .nav-link', item).click();
+    }
+  });
 });
 
 /**

@@ -57,7 +57,7 @@ npm run demo:gravar
 **Gravando no formato de celular, em ritmo de apresentação** (390×844,
 proporção de um smartphone moderno; digitação mais lenta, pausas ao fim de
 cada tela e, no final, um passeio pelo menu por Painel, DRE e Fluxo de
-Caixa). Leva uns 4 minutos e gera `cypress/videos-celular/demo-celular.mp4`
+Caixa). Leva uns 5 minutos e gera `cypress/videos-celular/demo-celular.mp4`
 (780×1688, só a tela do app, sem o painel do Cypress):
 
 ```bash

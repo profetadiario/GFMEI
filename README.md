@@ -2,7 +2,7 @@
 
 Sistema web simples de controle financeiro para microempreendedoras individuais (MEI),
 desenvolvido em **C# / ASP.NET Core MVC** com **Entity Framework Core** e banco de dados
-**SQL Server (MS SQL Express)**, como protótipo do Trabalho de Conclusão de Curso *"Análise
+**SQL Server (MS SQL Express)**, como sistema do Trabalho de Conclusão de Curso *"Análise
 do controle financeiro dos microempreendimentos individuais (MEI) liderados por mulheres em
 Juiz de Fora - MG"*.
 
@@ -26,7 +26,7 @@ sem necessidade de rodar migrações formais do Entity Framework.
 > `EnsureCreated()`, que não altera um banco já existente. Para esses casos, o
 > `Program.cs` roda um pequeno ajuste de esquema idempotente logo na inicialização
 > (verifica se a coluna já existe antes de adicioná-la) — uma opção deliberadamente mais
-> simples do que adotar EF Core Migrations completo, adequada ao escopo de um protótipo
+> simples do que adotar EF Core Migrations completo, adequada ao escopo de um sistema
 > acadêmico com poucas alterações de esquema ao longo do tempo.
 
 ## Módulos do sistema

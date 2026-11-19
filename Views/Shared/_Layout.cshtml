@@ -9,7 +9,7 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primario">
+        <nav class="navbar navbar-expand-xl navbar-dark bg-primario">
             <div class="container">
                 <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">💜 Controle Financeiro MEI</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal">
@@ -18,17 +18,24 @@
                 <div class="collapse navbar-collapse" id="menuPrincipal">
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <ul class="navbar-nav me-auto mb-2 mb-xl-0 text-nowrap">
                             <li class="nav-item"><a class="nav-link" asp-controller="Dashboard" asp-action="Index">Painel</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Transacoes" asp-action="Index">Lançamentos</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Dre" asp-action="Index">DRE</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="FluxoCaixa" asp-action="Index">Fluxo de Caixa</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Metas" asp-action="Index">Metas</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-controller="Captacoes" asp-action="Index">Captação de Recursos</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Captacoes" asp-action="Index">Captações</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Categorias" asp-action="Index">Categorias</a></li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="menuFerramentas" role="button" data-bs-toggle="dropdown" aria-expanded="false">Ferramentas</a>
+                                <ul class="dropdown-menu" aria-labelledby="menuFerramentas">
+                                    <li><a class="dropdown-item nav-link-ferramenta" asp-controller="Calculadora" asp-action="Index">Calculadora de preço</a></li>
+                                    <li><a class="dropdown-item nav-link-ferramenta" asp-controller="Relatorio" asp-action="Index">Relatório para o banco</a></li>
+                                </ul>
+                            </li>
                         </ul>
                         <ul class="navbar-nav">
-                            <li class="nav-item d-flex align-items-center me-3 text-white-50 small">
+                            <li class="nav-item d-flex align-items-center me-3 text-white-50 small text-nowrap">
                                 Olá, @User.Identity!.Name
                             </li>
                             <li class="nav-item">
@@ -72,7 +79,7 @@
 
     <footer class="border-top footer text-muted py-3">
         <div class="container">
-            Controle Financeiro MEI &copy; @DateTime.Now.Year — Trabalho de Conclusão de Curso (protótipo acadêmico)
+            Controle Financeiro MEI &copy; @DateTime.Now.Year — sistema desenvolvido em um Trabalho de Conclusão de Curso
         </div>
     </footer>
 

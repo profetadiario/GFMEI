@@ -44,6 +44,8 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddScoped<IFluxoCaixaService, FluxoCaixaService>();
 builder.Services.AddScoped<IDreService, DreService>();
 builder.Services.AddScoped<IFluxoCaixaMensalService, FluxoCaixaMensalService>();
+builder.Services.AddScoped<ICalculadoraPrecoService, CalculadoraPrecoService>();
+builder.Services.AddScoped<IRelatorioCreditoService, RelatorioCreditoService>();
 
 // Autenticação por cookie ---------------------------------------------
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

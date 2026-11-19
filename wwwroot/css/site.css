@@ -90,3 +90,19 @@ body {
   max-width: 380px;
   margin: 0 auto;
 }
+
+/* -------------------------------------------------------------------
+   Relatório para o banco: impressão / "salvar em PDF" pelo navegador
+   (decisão 3). Some o que é de navegação, fica só o relatório.
+   ------------------------------------------------------------------- */
+@media print {
+    nav.navbar, footer.footer, .no-print, .alert-dismissible .btn-close { display: none !important; }
+    body { background: #fff !important; font-size: 11pt; }
+    .container { max-width: 100% !important; }
+    .card, .card-resumo { box-shadow: none !important; border: 1px solid #ccc !important; }
+    .quebra-evitar, .card { break-inside: avoid; page-break-inside: avoid; }
+    .table-responsive { overflow: visible !important; }
+    .tabela-relatorio { font-size: 9pt; }
+    a[href]::after { content: none !important; }
+    @page { size: A4 portrait; margin: 12mm; }
+}

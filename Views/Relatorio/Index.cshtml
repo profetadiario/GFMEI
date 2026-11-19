@@ -1,0 +1,195 @@
+@model RelatorioCreditoViewModel
+@using GestaoFinanceiraMEI.Services
+@{
+    ViewData["Title"] = "Relatório para o banco";
+    var rel = Model.Relatorio;
+    var pt = new System.Globalization.CultureInfo("pt-BR");
+    string R(decimal v) => "R$ " + v.ToString("N2", pt);
+    var primeiro = rel.Meses.FirstOrDefault();
+    var ultimo = rel.Meses.LastOrDefault();
+    var periodo = primeiro is null ? "" : $"{primeiro.Nome} a {ultimo!.Nome}";
+}
+
+<div class="relatorio-credito">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <h2 class="mb-1">Relatório para o banco</h2>
+            <p class="text-muted mb-0">Resumo dos últimos 12 meses do negócio, para apoiar um pedido de crédito.</p>
+        </div>
+        <button type="button" class="btn btn-primary no-print" onclick="window.print()" id="botaoImprimir">
+            Imprimir / salvar em PDF
+        </button>
+    </div>
+
+    <div class="card card-resumo p-3 mb-3" id="identificacao">
+        <div class="row g-2">
+            <div class="col-md-4"><span class="text-muted small d-block">Negócio</span><strong>@Model.NomeNegocio</strong></div>
+            <div class="col-md-4"><span class="text-muted small d-block">Responsável</span><strong>@Model.NomeEmpreendedora</strong></div>
+            <div class="col-md-4"><span class="text-muted small d-block">Período</span><strong>@periodo</strong></div>
+        </div>
+        <p class="text-muted small mb-0 mt-2">
+            Emitido em @rel.EmitidoEm.ToString("dd/MM/yyyy", pt) pelo sistema Controle Financeiro MEI, com os lançamentos
+            feitos pela própria empreendedora. O mês atual ainda está em andamento.
+        </p>
+    </div>
+
+    @if (!rel.TemDados)
+    {
+        <div class="alert alert-secondary">
+            Ainda não há lançamentos nos últimos 12 meses. Registre suas receitas e despesas em "Lançamentos" para montar o relatório.
+        </div>
+    }
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="card card-resumo p-3 h-100">
+                <span class="text-muted small">Faturamento em 12 meses</span>
+                <span class="valor valor-receita" id="faturamentoTotal">@R(rel.FaturamentoTotal)</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-resumo p-3 h-100">
+                <span class="text-muted small">Faturamento médio por mês</span>
+                <span class="valor">@R(rel.FaturamentoMedio)</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-resumo p-3 h-100">
+                <span class="text-muted small">Sobra média por mês</span>
+                <span class="valor" id="sobraMedia">@R(rel.SobraMedia)</span>
+                <span class="text-muted small">já descontadas as retiradas pessoais</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-resumo p-3 h-100">
+                <span class="text-muted small">Saldo em caixa hoje</span>
+                <span class="valor">@R(rel.SaldoAtual)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-resumo p-3 mb-3 quebra-evitar" id="indicadorParcela">
+        <h5>Quanto de parcela cabe no seu negócio?</h5>
+        @if (!rel.TemDados)
+        {
+            <p class="text-muted mb-0">Sem lançamentos ainda, não dá para calcular.</p>
+        }
+        else if (rel.SobraMedia <= 0)
+        {
+            <p class="mb-0 text-danger fw-semibold" id="parcelaSemSobra">
+                Nos meses considerados não sobrou dinheiro no caixa (sobra média de @R(rel.SobraMedia)).
+                Uma parcela agora deixaria o caixa no vermelho. Vale rever custos e preços antes de pedir crédito.
+            </p>
+        }
+        else
+        {
+            <p class="mb-2">
+                Com uma sobra média de <strong>@R(rel.SobraMedia)</strong> por mês, uma parcela de até
+                <strong id="parcelaConfortavel">@R(rel.ParcelaConfortavel)</strong> (30% da sobra) cabe com folga.
+            </p>
+            <form method="get" class="row g-2 align-items-end no-print">
+                <div class="col-sm-6 col-md-4">
+                    <label class="form-label" for="parcela">Simular uma parcela (R$ por mês)</label>
+                    <input class="form-control" id="parcela" name="parcela" inputmode="decimal"
+                           value="@(Model.ParcelaSimulada?.ToString("0.##", pt))" placeholder="Ex.: 300,00" />
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary">Ver se cabe</button>
+                </div>
+            </form>
+            @if (Model.Situacao is SituacaoParcela situacao && Model.ParcelaSimulada is decimal parcela)
+            {
+                var (classe, titulo, texto) = situacao switch
+                {
+                    SituacaoParcela.Confortavel => ("alert-success", "Cabe com folga", "a parcela usa até 30% da sobra média."),
+                    SituacaoParcela.Atencao => ("alert-warning", "Atenção", "a parcela usa entre 30% e 60% da sobra média: um mês fraco pode apertar o caixa."),
+                    _ => ("alert-danger", "Arriscada", "a parcela usa mais de 60% da sobra média e pode faltar dinheiro para o próprio negócio.")
+                };
+                <div class="alert @classe mt-3 mb-0" id="resultadoParcela">
+                    <strong>@titulo:</strong> uma parcela de @R(parcela) compromete
+                    <strong>@Model.PercentualDaSobra?.ToString("N1", pt)%</strong> da sobra média — @texto
+                </div>
+            }
+        }
+        <p class="text-muted small mt-3 mb-0">
+            Sobra média = (receitas − despesas do negócio − retiradas pessoais) ÷ @rel.MesesConsiderados
+            @(rel.MesesConsiderados == 1 ? "mês" : "meses") com lançamentos. As faixas de 30% e 60% são uma referência de
+            prudência do sistema, não uma regra de banco: a análise final é sempre da instituição.
+        </p>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-5">
+            <div class="card card-resumo p-3 h-100 quebra-evitar" id="dreResumida">
+                <h5>DRE resumida dos 12 meses</h5>
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr><td>(+) Receita bruta</td><td class="text-end">@R(rel.FaturamentoTotal)</td></tr>
+                        <tr><td>(−) Deduções e impostos</td><td class="text-end">@R(rel.DeducoesEImpostos)</td></tr>
+                        <tr class="fw-semibold"><td>(=) Receita líquida</td><td class="text-end">@R(rel.ReceitaLiquida)</td></tr>
+                        <tr><td>(−) Custo da mercadoria vendida</td><td class="text-end">@R(rel.CustoMercadoriaVendida)</td></tr>
+                        <tr class="fw-semibold"><td>(=) Lucro bruto</td><td class="text-end">@R(rel.LucroBruto)</td></tr>
+                        <tr><td>(−) Despesas variáveis</td><td class="text-end">@R(rel.DespesasVariaveis)</td></tr>
+                        <tr><td>(−) Despesas fixas</td><td class="text-end">@R(rel.DespesasFixas)</td></tr>
+                        <tr class="table-success fw-bold"><td>(=) Lucro líquido</td><td class="text-end">@R(rel.LucroLiquido)</td></tr>
+                        <tr class="text-muted"><td>Retiradas pessoais (fora do DRE)</td><td class="text-end">@R(rel.RetiradasPessoais)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="card card-resumo p-3 h-100 quebra-evitar">
+                <h5>Mês a mês</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0 tabela-relatorio" id="tabelaMeses">
+                        <thead>
+                            <tr>
+                                <th>Mês</th>
+                                <th class="text-end">Receitas</th>
+                                <th class="text-end">Despesas</th>
+                                <th class="text-end">Retiradas</th>
+                                <th class="text-end">Sobra</th>
+                                <th class="text-end">Saldo final</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in rel.Meses)
+                            {
+                                <tr>
+                                    <td>@m.Nome</td>
+                                    <td class="text-end">@m.Receitas.ToString("N2", pt)</td>
+                                    <td class="text-end">@m.DespesasDoNegocio.ToString("N2", pt)</td>
+                                    <td class="text-end">@m.RetiradasPessoais.ToString("N2", pt)</td>
+                                    <td class="text-end @(m.Sobra < 0 ? "text-danger" : "")">@m.Sobra.ToString("N2", pt)</td>
+                                    <td class="text-end fw-semibold">@m.SaldoFinal.ToString("N2", pt)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted small mt-2 mb-0">
+                    @rel.MesesComFaturamento de 12 meses com faturamento.
+                    @if (rel.QuantidadeCaptacoes > 0)
+                    {
+                        <span>Crédito já obtido e registrado no sistema: @R(rel.TotalCaptado) em @rel.QuantidadeCaptacoes @(rel.QuantidadeCaptacoes == 1 ? "captação" : "captações").</span>
+                    }
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-resumo p-3 mb-3 quebra-evitar" id="oQueOBancoPede">
+        <h5>O que os bancos costumam pedir ao MEI</h5>
+        <ul class="mb-2">
+            <li><strong>Documentos do negócio:</strong> CNPJ e Certificado da Condição de MEI (CCMEI), com o cadastro em dia.</li>
+            <li><strong>Declaração anual do MEI</strong> (DASN-SIMEI) entregue e DAS pagos.</li>
+            <li><strong>Documentos pessoais:</strong> RG, CPF e comprovante de endereço.</li>
+            <li><strong>Prova de faturamento:</strong> extratos ou relatórios de receitas. Algumas linhas pedem meses seguidos de faturamento, e este relatório ajuda a mostrar isso.</li>
+            <li><strong>Nome sem restrição</strong> no CPF e no CNPJ, e uma parcela que caiba no caixa.</li>
+        </ul>
+        <p class="text-muted small mb-0">
+            Lista geral, para orientar. Cada banco e cada linha de crédito têm exigências próprias: confirme com a
+            instituição (ou com o Sebrae da sua região) antes de juntar os papéis.
+        </p>
+    </div>
+</div>
