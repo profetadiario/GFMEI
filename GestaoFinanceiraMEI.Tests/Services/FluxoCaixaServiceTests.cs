@@ -149,7 +149,7 @@ public class FluxoCaixaServiceTests
     }
 
     // ---------------------------------------------------------------
-    // Retirada pessoal (pró-labore): fora de "Despesas", dentro do saldo
+    // Retirada pessoal: fora de "Despesas", dentro do saldo
     // ---------------------------------------------------------------
 
     private const int CategoriaRetiradaPessoal = 10;
@@ -159,7 +159,7 @@ public class FluxoCaixaServiceTests
         _context.Categorias.Add(new Categoria
         {
             Id = id,
-            Nome = "Retirada pessoal (pró-labore)",
+            Nome = "Retirada pessoal",
             Tipo = TipoTransacao.Despesa,
             NaturezaDespesa = NaturezaDespesa.RetiradaPessoal,
             UsuarioId = usuarioId

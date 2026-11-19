@@ -36,7 +36,7 @@ public class NaturezaDespesaTests
     [TestCase(NaturezaDespesa.DeducaoOuImposto, "Dedução ou imposto (ex.: DAS)")]
     [TestCase(NaturezaDespesa.CustoMercadoriaVendida, "Custo da mercadoria vendida (CMV)")]
     [TestCase(NaturezaDespesa.DespesaFixa, "Despesa fixa")]
-    [TestCase(NaturezaDespesa.RetiradaPessoal, "Retirada pessoal (pró-labore)")]
+    [TestCase(NaturezaDespesa.RetiradaPessoal, "Retirada pessoal")]
     public void CadaValor_TemODisplayNameEsperado(NaturezaDespesa valor, string nomeEsperado)
     {
         var membro = typeof(NaturezaDespesa).GetMember(valor.ToString())[0];

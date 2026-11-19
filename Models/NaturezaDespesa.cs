@@ -30,11 +30,11 @@ public enum NaturezaDespesa
 
     /// <summary>
     /// Saída de dinheiro do negócio para uso pessoal da empreendedora
-    /// (pró-labore / retirada). Não é despesa do negócio: fica fora do DRE e
+    /// (retirada de lucros). Não é despesa do negócio: fica fora do DRE e
     /// aparece separada de "Despesas" no Painel e em Lançamentos, mas continua
     /// reduzindo o saldo em caixa. Como o enum é gravado como número inteiro,
     /// acrescentar este valor NÃO exige nenhuma mudança no banco de dados.
     /// </summary>
-    [Display(Name = "Retirada pessoal (pró-labore)")]
+    [Display(Name = "Retirada pessoal")]
     RetiradaPessoal = 4
 }

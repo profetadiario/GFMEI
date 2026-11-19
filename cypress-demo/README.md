@@ -54,6 +54,13 @@ apresentação do TCC):
 npm run demo:gravar
 ```
 
+**Gravando em tamanho de celular** (375×812; vídeo em
+`cypress/videos-celular/`):
+
+```bash
+npm run demo:gravar:celular
+```
+
 ## Observações
 
 - Cada execução cria uma conta nova (e-mail com timestamp), então a demo

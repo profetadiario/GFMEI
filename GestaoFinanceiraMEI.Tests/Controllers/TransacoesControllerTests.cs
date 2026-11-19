@@ -256,7 +256,7 @@ public class TransacoesControllerTests
 
     // ---------------------------------------------------------------
     // Lançamento rápido: descrição opcional, "salvar e lançar outro"
-    // e retirada pessoal (pró-labore)
+    // e retirada pessoal
     // ---------------------------------------------------------------
 
     [Test]
@@ -336,7 +336,7 @@ public class TransacoesControllerTests
         _context.Categorias.Add(new Categoria
         {
             Id = 600,
-            Nome = "Retirada pessoal (pró-labore)",
+            Nome = "Retirada pessoal",
             Tipo = TipoTransacao.Despesa,
             NaturezaDespesa = NaturezaDespesa.RetiradaPessoal,
             UsuarioId = 777
@@ -396,7 +396,7 @@ public class TransacoesControllerTests
     {
         var retirada = new Categoria
         {
-            Nome = "Retirada pessoal (pró-labore)",
+            Nome = "Retirada pessoal",
             Tipo = TipoTransacao.Despesa,
             NaturezaDespesa = NaturezaDespesa.RetiradaPessoal,
             UsuarioId = UsuarioId

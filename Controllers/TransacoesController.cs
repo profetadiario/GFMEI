@@ -14,7 +14,7 @@ public class TransacoesController : AutenticadoController
 {
     public const string OrigemNegocio = "negocio";
     public const string OrigemPessoal = "pessoal";
-    public const string NomeCategoriaRetiradaPessoal = "Retirada pessoal (pró-labore)";
+    public const string NomeCategoriaRetiradaPessoal = "Retirada pessoal";
     private const string AcaoSalvarELancarOutro = "outro";
 
     private readonly AppDbContext _context;
@@ -40,7 +40,7 @@ public class TransacoesController : AutenticadoController
         ViewData["Mes"] = mesFiltro;
         ViewData["Ano"] = anoFiltro;
         ViewData["TotalReceitas"] = transacoes.Where(t => t.Tipo == TipoTransacao.Receita).Sum(t => t.Valor);
-        // Despesas do negócio e retiradas pessoais (pró-labore) aparecem em
+        // Despesas do negócio e retiradas pessoais aparecem em
         // linhas separadas; as duas reduzem o saldo do mês.
         ViewData["TotalDespesas"] = transacoes.Where(t => t.Tipo == TipoTransacao.Despesa && !EhRetiradaPessoal(t)).Sum(t => t.Valor);
         ViewData["TotalRetiradas"] = transacoes.Where(EhRetiradaPessoal).Sum(t => t.Valor);
@@ -57,7 +57,7 @@ public class TransacoesController : AutenticadoController
     /// <summary>
     /// Lançamento rápido. Além dos campos do lançamento, recebe:
     /// "origem" ("negocio" é o padrão; "pessoal" marca uma saída como retirada
-    /// pessoal / pró-labore, que vai para uma categoria própria e fica fora do
+    /// pessoal, que vai para uma categoria própria e fica fora do
     /// DRE) e "acao" ("outro" salva e já abre um novo lançamento em branco).
     /// A descrição é opcional: se vier vazia, usa o nome da categoria.
     /// </summary>

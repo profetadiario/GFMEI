@@ -196,13 +196,13 @@ public class DreServiceTests
     [Test]
     public async Task ObterDreAsync_RetiradaPessoal_NaoEntraEmNenhumaLinhaDoDre_NemAlteraOLucroLiquido()
     {
-        // Pró-labore é dinheiro que a empreendedora tira do negócio para uso
+        // Retirada pessoal é dinheiro que a empreendedora tira do negócio para uso
         // próprio: não é despesa do negócio, então não pode reduzir o lucro.
         const int categoriaRetirada = 50;
         _context.Categorias.Add(new Categoria
         {
             Id = categoriaRetirada,
-            Nome = "Retirada pessoal (pró-labore)",
+            Nome = "Retirada pessoal",
             Tipo = TipoTransacao.Despesa,
             NaturezaDespesa = NaturezaDespesa.RetiradaPessoal,
             UsuarioId = UsuarioId

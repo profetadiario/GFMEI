@@ -26,10 +26,10 @@ public class ResumoFinanceiro
 {
     public decimal TotalReceitas { get; set; }
 
-    /// <summary>Despesas do negócio. NÃO inclui as retiradas pessoais (pró-labore).</summary>
+    /// <summary>Despesas do negócio. NÃO inclui as retiradas pessoais.</summary>
     public decimal TotalDespesas { get; set; }
 
-    /// <summary>Retiradas pessoais (pró-labore), mostradas em linha separada das despesas.</summary>
+    /// <summary>Retiradas pessoais, mostradas em linha separada das despesas.</summary>
     public decimal TotalRetiradasPessoais { get; set; }
 
     /// <summary>Saldo em caixa: receitas menos despesas e menos retiradas pessoais.</summary>

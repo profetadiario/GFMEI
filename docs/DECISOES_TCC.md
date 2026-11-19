@@ -9,17 +9,20 @@
 - Pesquisa de campo encerrada em 18/11/2026: 30 respostas, 25 válidas.
 - **Congelamento do sistema: 27/11/2026** (sem deploys depois). Depois disso, só a gravação do vídeo de demonstração (Cypress rodando localmente).
 - 26/11 = reserva (buffer).
+- **Artigo definitivo: ~26/11/2026.** O parágrafo "Requisitos apontados e resposta do sistema" (seção 8) só fecha depois do lote 3 (v1.6). Confirmar com a Annik se esse prazo atende à entrega do texto à banca.
+- **Validação da orientadora pendente:** a Annik está revisando o relatório estatístico completo de 18/11/2026 (n = 25). As leituras da seção 8, as comparações entre grupos e a codificação das respostas abertas ficam marcadas como "em validação" no artigo até a aprovação dela.
 
 ## 2. Decisões aprovadas (18/11/2026)
 
 | # | Decisão |
 |---|---------|
-| 1 | **Retirada pessoal (pró-labore)** aparece em linha separada no Painel, fora de "Despesas". A sobra média do indicador de parcela (lote 3) desconta o pró-labore. |
+| 1 | **Retirada pessoal** aparece em linha separada no Painel, fora de "Despesas". A sobra média do indicador de parcela (lote 3) desconta as retiradas pessoais. |
 | 2 | **Reserva de emergência** fica como trabalho futuro. |
 | 3 | **Impressão do navegador** é aceita como PDF do relatório para o banco. |
 | 4 | Enrique roda os testes, o deploy e a conferência no Somee **a cada lote**, antes de começar o próximo. |
 | 5 | Os prints de telas para o artigo/apresentação saem da **demo do Cypress**. |
 | 6 | O teste com a turma depende do Danilo; Enrique avisa se acontecer. |
+| 7 | **Nome da retirada pessoal — DECIDIDO em 19/11/2026: opção (a).** O sistema mantém o comportamento (fora do DRE, dentro do saldo em caixa) e usa o nome **"Retirada pessoal"**, sem "pró-labore" nas telas, no enum e nos testes. Motivo: pró-labore é remuneração da sócia e costuma entrar no DRE como despesa; a retirada de lucros fica fora do DRE e só sai do caixa (e o MEI não tem pró-labore formal). A troca foi feita ainda no lote 1, antes do deploy da v1.4, então nenhuma categoria com o nome antigo chega ao banco de produção. Se o Danilo preferir a opção (b) (pró-labore como despesa no DRE), reabrir como mudança de lógica do DRE. |
 
 ## 3. Plano em três lotes
 
@@ -39,15 +42,15 @@ Redação sugerida para o artigo: trocar "indicadores de necessidade de capital"
 
 **O que entrou**
 
-- **Lançamento rápido** (tela *Lançamentos → Novo lançamento*): campos grandes para celular; ordem Tipo → Valor → Categoria; descrição opcional (se vazia, usa o nome da categoria); escolha "Do negócio" / "Pessoal (pró-labore)" para saídas; botão **Salvar e lançar outro**.
-- **Retirada pessoal (pró-labore):** novo valor de enum `NaturezaDespesa.RetiradaPessoal = 4`, **sem migração de banco**. A categoria "Retirada pessoal (pró-labore)" é criada automaticamente por usuária na primeira retirada. Fica **fora do DRE** (não altera o lucro líquido) e **dentro do saldo em caixa**.
-- **Painel:** saldo geral em destaque; linha separada "Retiradas pessoais (pró-labore)"; gráfico de rosca "Para onde foi o dinheiro este mês" (até 6 fatias, demais agrupadas em "Outras categorias") com a frase do maior gasto; aviso quando passam 3 dias ou mais sem lançamento.
+- **Lançamento rápido** (tela *Lançamentos → Novo lançamento*): campos grandes para celular; ordem Tipo → Valor → Categoria; descrição opcional (se vazia, usa o nome da categoria); escolha "Do negócio" / "Pessoal" para saídas; botão **Salvar e lançar outro**.
+- **Retirada pessoal:** novo valor de enum `NaturezaDespesa.RetiradaPessoal = 4`, **sem migração de banco**. A categoria "Retirada pessoal" é criada automaticamente por usuária na primeira retirada. Fica **fora do DRE** (não altera o lucro líquido) e **dentro do saldo em caixa**.
+- **Painel:** saldo geral em destaque; linha separada "Retiradas pessoais"; gráfico de rosca "Para onde foi o dinheiro este mês" (até 6 fatias, demais agrupadas em "Outras categorias") com a frase do maior gasto; aviso quando passam 3 dias ou mais sem lançamento.
 - **Lançamentos (lista):** cards separados para Receitas, Despesas, Retiradas pessoais e Saldo do mês.
 - **Desempenho:** o Painel passou a usar uma única chamada `ObterPainelAsync` (2 consultas) no lugar de ler todos os lançamentos duas vezes.
 
 **Telas afetadas:** Painel (Dashboard/Index), Lançamentos (Transacoes/Index), Novo lançamento (Transacoes/Create).
 
-**Testes:** +40 testes novos (controller de lançamentos +11, controller do Painel +3, enums +2, ViewModel do Painel +12, serviço de fluxo de caixa +11, DRE +1). Total após o lote: *baseline anterior (>190, valor exato na última execução) + 40* — **preencher com o número do `dotnet test`**: ______.
+**Testes:** +40 testes novos (controller de lançamentos +11, controller do Painel +3, enums +2, ViewModel do Painel +12, serviço de fluxo de caixa +11, DRE +1). Total após o lote: **276 testes, 276 passando** (`dotnet test`, 19/11/2026).
 
 **Versão:** v1.4 (tag e release a criar no GitHub após o deploy conferido).
 
@@ -55,7 +58,7 @@ Redação sugerida para o artigo: trocar "indicadores de necessidade de capital"
 
 - Bootstrap, Chart.js e jQuery continuam carregando do CDN jsdelivr (hospedar localmente não foi feito: precisa baixar os arquivos na máquina do Enrique). Anotado como melhoria opcional.
 - Nada foi compilado fora da máquina do Enrique; a validação é o `dotnet test` dele.
-- Os textos da demo do Cypress continuam compatíveis (ids `#Descricao #Tipo #CategoriaId #Valor #Data`, botão "Salvar", textos "Saldo geral", "Receitas em", "Despesas em"), mas a demo ainda não foi rodada contra o sistema publicado.
+- Os textos da demo do Cypress continuam compatíveis (ids `#Descricao #Tipo #CategoriaId #Valor #Data`, botão "Salvar", textos "Saldo geral", "Receitas em", "Despesas em"), e a demo foi rodada **localmente** em 19/11/2026 (`npm run demo:gravar`, 1280×800, e `npm run demo:gravar:celular`, 375×812): **11/11 passos passando nos dois tamanhos**. Ainda falta rodar contra o sistema publicado.
 
 ### Lote 2 — v1.5
 (a preencher)

@@ -1,5 +1,7 @@
 node_modules/
 cypress/videos/
 cypress/screenshots/
+cypress/videos-celular/
+cypress/screenshots-celular/
 cypress/downloads/
 ultima-conta-demo.txt
