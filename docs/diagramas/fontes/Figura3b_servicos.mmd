@@ -1,0 +1,73 @@
+classDiagram
+    direction LR
+    class IFluxoCaixaService {
+        <<interface>>
+        +ObterResumoAsync(usuarioId, mes, ano) ResumoFinanceiro
+        +ObterPainelAsync(usuarioId, hoje) PainelFinanceiro
+    }
+    class FluxoCaixaService {
+        -AppDbContext _context
+        +ObterResumoAsync(usuarioId, mes, ano) ResumoFinanceiro
+        +ObterPainelAsync(usuarioId, hoje) PainelFinanceiro
+    }
+    class ResumoFinanceiro {
+        +decimal TotalReceitas
+        +decimal TotalDespesas
+        +decimal TotalRetiradasPessoais
+        +decimal Saldo
+        +ResumoMensal[] HistoricoMensal
+    }
+    class PainelFinanceiro {
+        +ResumoFinanceiro ResumoAnoCorrente
+        +ResumoFinanceiro ResumoGeral
+        +GastoPorCategoria[] GastosPorCategoriaDoMes
+        +GastoPorCategoria MaiorGastoDoMes
+        +DateTime UltimoLancamento
+    }
+    class IDreService {
+        <<interface>>
+        +ObterDreAsync(usuarioId, mes, ano) DreMensal
+    }
+    class DreService {
+        -AppDbContext _context
+        +ObterDreAsync(usuarioId, mes, ano) DreMensal
+    }
+    class DreMensal {
+        +decimal ReceitaBrutaTotal
+        +decimal DeducoesEImpostos
+        +decimal ReceitaLiquida
+        +decimal CustoMercadoriaVendida
+        +decimal LucroBruto
+        +decimal DespesasVariaveis
+        +decimal DespesasFixas
+        +decimal LucroLiquido
+    }
+    class IFluxoCaixaMensalService {
+        <<interface>>
+        +ObterFluxoAnualAsync(usuarioId, ano) FluxoCaixaAnual
+    }
+    class FluxoCaixaMensalService {
+        -AppDbContext _context
+        +ObterFluxoAnualAsync(usuarioId, ano) FluxoCaixaAnual
+    }
+    class FluxoCaixaAnual {
+        +int Ano
+        +decimal[] SaldoInicial
+        +decimal[] TotalEntradas
+        +decimal[] TotalSaidas
+        +decimal[] SaldoOperacional
+        +decimal[] SaldoFinal
+    }
+    class PasswordHasher {
+        <<static>>
+        +CriarHash(senha) Tuple
+        +Verificar(senha, hash, salt) bool
+    }
+    IFluxoCaixaService <|.. FluxoCaixaService : implementa
+    FluxoCaixaService ..> ResumoFinanceiro : produz
+    FluxoCaixaService ..> PainelFinanceiro : produz
+    PainelFinanceiro --> ResumoFinanceiro
+    IDreService <|.. DreService : implementa
+    DreService ..> DreMensal : produz
+    IFluxoCaixaMensalService <|.. FluxoCaixaMensalService : implementa
+    FluxoCaixaMensalService ..> FluxoCaixaAnual : produz

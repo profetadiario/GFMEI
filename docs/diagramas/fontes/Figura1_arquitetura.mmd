@@ -1,0 +1,25 @@
+flowchart TB
+    U(["🧑‍💼 Usuária (MEI)"])
+    subgraph AP["Camada de Apresentação"]
+        V["Views Razor (.cshtml)<br/>Bootstrap + Chart.js<br/>CSS de impressão (relatório)"]
+    end
+    subgraph APL["Camada de Aplicação (MVC)"]
+        C["Controllers<br/>Conta • Dashboard • Transacoes<br/>Categorias • Metas • Captacoes<br/>Dre • FluxoCaixa<br/>Calculadora • Relatorio"]
+        VM["ViewModels<br/>DTOs específicos de tela"]
+    end
+    subgraph DOM["Camada de Domínio / Serviços"]
+        S["Services<br/>FluxoCaixaService • DreService<br/>FluxoCaixaMensalService<br/>CalculadoraPrecoService<br/>RelatorioCreditoService<br/>PasswordHasher"]
+        M["Models<br/>Usuario • Categoria (+ NaturezaDespesa)<br/>Transacao • MetaFinanceira<br/>CaptacaoRecurso"]
+    end
+    subgraph DAD["Camada de Dados"]
+        DB["AppDbContext<br/>(Entity Framework Core)"]
+        SQL[("Banco de dados<br/>SQL Server")]
+    end
+    U --> V --> C
+    C --> S
+    C --> M
+    C --> VM
+    S --> M
+    S --> DB
+    C --> DB
+    DB --> SQL

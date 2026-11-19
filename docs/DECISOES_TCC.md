@@ -77,6 +77,8 @@ Redação sugerida para o artigo: trocar "indicadores de necessidade de capital"
 
 **Demo Cypress:** +2 passos (11: calculadora → R$ 53,33 por peça; 12: relatório → sobra média R$ 1.515,00, parcela confortável R$ 454,50, simulação de R$ 400,00 = 26,4%, "cabe com folga"). Rodada localmente em 19/11/2026: `npm run demo:gravar` **13/13** e `npm run demo:gravar:celular` **13/13** (~5 min, vídeo 780×1688).
 
+**Documentação técnica e modelagem (atualizadas em 19/11/2026 para v1.4 + v1.5):** `docs/Documentacao_Tecnica_Sistema_MEI.docx/.pdf` ganhou a seção 1.3 (evolução v1.4 e v1.5), os requisitos RF11–RF13 (calculadora, relatório, indicador de parcela), RF03/RF04/RF07/RF08 revistos (retirada pessoal, saldo em caixa, painel), três linhas novas no mapeamento de competências e considerações finais atualizadas. Figuras refeitas: 1 (arquitetura), 2 (casos de uso), 3a (enum com `RetiradaPessoal`), 3b (painel e retiradas) e **3c nova** (serviços de apoio à decisão). Figuras 4, 5 e 6 (atividades, sequência e DER) continuam válidas: o fluxo de lançamento e o banco não mudaram. As fontes Mermaid ficam em `docs/diagramas/fontes/` (gerar com `mmdc -c fontes/config.json -s 3`). O PDF do artigo em `Claude outputs/` **não** foi tocado: se ele usa essas figuras, precisa ser atualizado à parte.
+
 **Versão:** v1.5 (tag e release a criar no GitHub após o deploy conferido).
 
 **Pendências assumidas**

@@ -1,0 +1,76 @@
+classDiagram
+    direction LR
+    class ICalculadoraPrecoService {
+        <<interface>>
+        +Calcular(entrada) ResultadoCalculadoraPreco
+        +ObterCustosFixosSugeridosAsync(usuarioId, hoje) SugestaoCustosFixos
+    }
+    class CalculadoraPrecoService {
+        -IDreService _dre
+        +Calcular(entrada) ResultadoCalculadoraPreco
+        +ObterCustosFixosSugeridosAsync(usuarioId, hoje) SugestaoCustosFixos
+    }
+    class EntradaCalculadoraPreco {
+        +decimal CustoUnitario
+        +decimal CustosFixosMes
+        +int QuantidadeMes
+        +decimal TaxasPercentual
+        +decimal LucroPercentual
+    }
+    class ResultadoCalculadoraPreco {
+        +bool Valido
+        +string[] Erros
+        +decimal CustoTotalPorUnidade
+        +decimal PrecoSugerido
+        +decimal TaxasPorUnidade
+        +decimal LucroPorUnidade
+        +decimal FaturamentoNoMes
+    }
+    class IDreService {
+        <<interface>>
+    }
+    class IRelatorioCreditoService {
+        <<interface>>
+        +ObterRelatorioAsync(usuarioId, hoje) RelatorioCredito
+    }
+    class RelatorioCreditoService {
+        -AppDbContext _context
+        +ObterRelatorioAsync(usuarioId, hoje) RelatorioCredito
+    }
+    class RelatorioCredito {
+        +MesRelatorio[] Meses
+        +int MesesConsiderados
+        +decimal FaturamentoTotal
+        +decimal FaturamentoMedio
+        +decimal LucroLiquido
+        +decimal SobraMedia
+        +decimal ParcelaConfortavel
+        +decimal TotalCaptado
+        +PercentualDaSobra(parcela) decimal
+        +AvaliarParcela(parcela) SituacaoParcela
+    }
+    class MesRelatorio {
+        +int Mes
+        +int Ano
+        +decimal Receitas
+        +decimal DespesasDoNegocio
+        +decimal RetiradasPessoais
+        +decimal LucroLiquido
+        +decimal Sobra
+        +decimal SaldoFinal
+    }
+    class SituacaoParcela {
+        <<enumeration>>
+        SemDados
+        Confortavel
+        Atencao
+        Arriscada
+    }
+    ICalculadoraPrecoService <|.. CalculadoraPrecoService : implementa
+    CalculadoraPrecoService ..> EntradaCalculadoraPreco : recebe
+    CalculadoraPrecoService ..> ResultadoCalculadoraPreco : produz
+    CalculadoraPrecoService --> IDreService : usa
+    IRelatorioCreditoService <|.. RelatorioCreditoService : implementa
+    RelatorioCreditoService ..> RelatorioCredito : produz
+    RelatorioCredito "1" *-- "12" MesRelatorio
+    RelatorioCredito ..> SituacaoParcela : avalia

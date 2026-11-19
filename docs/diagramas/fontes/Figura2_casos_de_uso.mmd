@@ -1,0 +1,28 @@
+flowchart LR
+    A(["🧑‍💼<br/><b>Microempreendedora<br/>Individual (MEI)</b>"])
+    subgraph SIS["Sistema de Controle Financeiro MEI"]
+        direction TB
+        UC1(["Cadastrar-se no sistema"])
+        UC2(["Entrar no sistema"])
+        UC3(["Gerenciar categorias<br/>de receita/despesa"])
+        UC4(["Registrar receita ou despesa<br/>(Lançamentos)"])
+        UC4b(["Registrar retirada pessoal"])
+        UC5(["Definir meta<br/>financeira mensal"])
+        UC6(["Acompanhar progresso<br/>da meta"])
+        UC7(["Registrar captação<br/>de recursos"])
+        UC8(["Visualizar painel de<br/>análise financeira"])
+        UC9(["Consultar DRE mensal<br/>(lucro ou prejuízo)"])
+        UC10(["Consultar fluxo de caixa<br/>mensal (jan. a dez.)"])
+        UC11(["Calcular preço de venda"])
+        UC12(["Gerar relatório para o banco"])
+        UC13(["Simular parcela de crédito"])
+    end
+    A --> UC1 & UC2 & UC3 & UC4 & UC4b & UC5 & UC6 & UC7 & UC8 & UC9 & UC10 & UC11 & UC12
+    UC4 -. inclui .-> UC3
+    UC4b -. estende .-> UC4
+    UC6 -. inclui .-> UC9
+    UC8 -. inclui .-> UC9
+    UC8 -. inclui .-> UC10
+    UC11 -. inclui .-> UC9
+    UC12 -. inclui .-> UC9
+    UC13 -. estende .-> UC12

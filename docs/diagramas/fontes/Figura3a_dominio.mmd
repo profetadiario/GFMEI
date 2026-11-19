@@ -1,0 +1,61 @@
+classDiagram
+    direction LR
+    class Usuario {
+        +int Id
+        +string Nome
+        +string Email
+        +string NomeNegocio
+        +string SenhaHash
+        +string SenhaSalt
+        +DateTime DataCadastro
+    }
+    class Categoria {
+        +int Id
+        +string Nome
+        +TipoTransacao Tipo
+        +NaturezaDespesa NaturezaDespesa
+        +int UsuarioId
+    }
+    class Transacao {
+        +int Id
+        +string Descricao
+        +decimal Valor
+        +TipoTransacao Tipo
+        +DateTime Data
+        +int CategoriaId
+        +int UsuarioId
+    }
+    class MetaFinanceira {
+        +int Id
+        +string Descricao
+        +decimal ValorMeta
+        +DateTime MesReferencia
+        +int UsuarioId
+    }
+    class CaptacaoRecurso {
+        +int Id
+        +string InstituicaoFinanceira
+        +decimal Valor
+        +decimal TaxaJurosMensal
+        +string Finalidade
+        +DateTime DataObtencao
+        +int UsuarioId
+    }
+    class TipoTransacao {
+        <<enumeration>>
+        Receita
+        Despesa
+    }
+    class NaturezaDespesa {
+        <<enumeration>>
+        DespesaVariavel
+        DeducaoOuImposto
+        CustoMercadoriaVendida
+        DespesaFixa
+        RetiradaPessoal
+    }
+    Usuario "1" --> "*" Categoria : possui
+    Usuario "1" --> "*" MetaFinanceira : define
+    Usuario "1" --> "*" CaptacaoRecurso : capta
+    Usuario "1" --> "*" Transacao : registra
+    Categoria "1" --> "*" Transacao : classifica
