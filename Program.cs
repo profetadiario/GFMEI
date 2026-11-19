@@ -46,6 +46,7 @@ builder.Services.AddScoped<IDreService, DreService>();
 builder.Services.AddScoped<IFluxoCaixaMensalService, FluxoCaixaMensalService>();
 builder.Services.AddScoped<ICalculadoraPrecoService, CalculadoraPrecoService>();
 builder.Services.AddScoped<IRelatorioCreditoService, RelatorioCreditoService>();
+builder.Services.AddScoped<INecessidadeCapitalService, NecessidadeCapitalService>();
 
 // Autenticação por cookie ---------------------------------------------
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

@@ -296,6 +296,23 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
     cy.olharTela(3000);
   });
 
+  it('Passo 13 — Reserva e capital de giro mostra quanto falta guardar', () => {
+    cy.loginComo(usuaria);
+    cy.visit('/Dashboard');
+    cy.irPeloMenu('Reserva e capital de giro');
+    cy.location('pathname').should('eq', '/NecessidadeCapital');
+
+    // Saídas do mês: 2.535,00. Reserva de 3 meses: 7.605,00. Em caixa:
+    // 1.515,00 → falta 6.090,00. Guardando 454,50/mês (30% da sobra),
+    // leva 14 meses.
+    cy.get('#custoMensal').should('contain', '2.535,00');
+    cy.get('#reservaNecessaria').should('contain', '7.605,00');
+    cy.get('#falta').should('contain', '6.090,00');
+    cy.get('#mesesFolego').should('contain', '0,6');
+    cy.get('#planoReserva').should('contain', '454,50').and('contain', '14 meses');
+    cy.olharTela(3000);
+  });
+
   it('Passo final — passeio pelo Painel, DRE e Fluxo de Caixa com tudo lançado', () => {
     cy.loginComo(usuaria);
 

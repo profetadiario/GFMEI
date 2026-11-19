@@ -1,0 +1,99 @@
+@model NecessidadeCapital
+@{
+    ViewData["Title"] = "Reserva e capital de giro";
+    var pt = new System.Globalization.CultureInfo("pt-BR");
+    string R(decimal v) => "R$ " + v.ToString("N2", pt);
+}
+
+<h2 class="mb-1">Reserva e capital de giro</h2>
+<p class="text-muted mb-4">
+    Quanto o negócio precisa ter guardado para pagar as contas num mês fraco, quanto já tem e quanto falta.
+</p>
+
+@if (!Model.TemDados)
+{
+    <div class="alert alert-secondary">
+        Ainda não há lançamentos nos últimos 12 meses. Registre receitas e despesas em "Lançamentos" para ver os indicadores.
+    </div>
+}
+else
+{
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="card card-resumo p-3 h-100">
+                <span class="text-muted small">Saídas médias por mês</span>
+                <span class="valor" id="custoMensal">@R(Model.CustoMensalMedio)</span>
+                <span class="text-muted small">despesas + retiradas pessoais</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-resumo p-3 h-100">
+                <span class="text-muted small">Reserva para @Model.MesesCobertura @(Model.MesesCobertura == 1 ? "mês" : "meses")</span>
+                <span class="valor" id="reservaNecessaria">@R(Model.ReservaNecessaria)</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-resumo p-3 h-100">
+                <span class="text-muted small">Você tem em caixa</span>
+                <span class="valor">@R(Model.SaldoAtual)</span>
+                @if (Model.MesesDeFolego is decimal folego)
+                {
+                    <span class="text-muted small" id="mesesFolego">dá para @folego.ToString("N1", pt) @(folego == 1 ? "mês" : "meses") sem vender</span>
+                }
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-resumo p-3 h-100">
+                <span class="text-muted small">Falta guardar</span>
+                <span class="valor @(Model.Falta > 0 ? "valor-despesa" : "valor-receita")" id="falta">@R(Model.Falta)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-resumo p-3 mb-3" id="planoReserva">
+        @if (Model.ReservaCompleta)
+        {
+            <p class="mb-0 text-success fw-semibold">Sua reserva já cobre @Model.MesesCobertura @(Model.MesesCobertura == 1 ? "mês" : "meses") de saídas. Ótimo!</p>
+        }
+        else if (Model.MesesParaFormarReserva is int meses)
+        {
+            <p class="mb-0">
+                Guardando <strong>@R(Model.GuardarPorMes)</strong> por mês, a reserva fica completa em
+                <strong>@meses @(meses == 1 ? "mês" : "meses")</strong>.
+            </p>
+        }
+        else
+        {
+            <p class="mb-0 text-danger fw-semibold">
+                Hoje não está sobrando dinheiro para guardar. Antes de formar a reserva, vale rever custos e preços
+                (a Calculadora de preço ajuda).
+            </p>
+        }
+    </div>
+
+    <form method="get" class="card card-resumo p-3 mb-3 row g-2 mx-0 align-items-end">
+        <div class="col-sm-5">
+            <label class="form-label" for="meses">Quantos meses de reserva?</label>
+            <select class="form-select" id="meses" name="meses">
+                @for (var m = NecessidadeCapital.MesesCoberturaMinimo; m <= NecessidadeCapital.MesesCoberturaMaximo; m++)
+                {
+                    <option value="@m" selected="@(m == Model.MesesCobertura)">@m @(m == 1 ? "mês" : "meses")</option>
+                }
+            </select>
+        </div>
+        <div class="col-sm-5">
+            <label class="form-label" for="guardar">Quanto consegue guardar por mês? (R$)</label>
+            <input class="form-control" id="guardar" name="guardar" inputmode="decimal" value="@Model.GuardarPorMes.ToString("0.##", pt)" />
+        </div>
+        <div class="col-sm-2">
+            <button type="submit" class="btn btn-primary w-100">Recalcular</button>
+        </div>
+    </form>
+
+    <p class="text-muted small">
+        Saídas médias = (despesas do negócio + retiradas pessoais) ÷ @Model.MesesConsiderados
+        @(Model.MesesConsiderados == 1 ? "mês" : "meses") com lançamentos nos últimos 12 meses. O valor sugerido para
+        guardar é 30% da sobra média, o mesmo limite de parcela confortável do relatório para o banco. É comum
+        recomendar de 3 a 6 meses de reserva, mas cada negócio tem o seu ritmo.
+    </p>
+}
