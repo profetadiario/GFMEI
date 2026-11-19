@@ -6,7 +6,7 @@
   "scripts": {
     "demo:aberta": "cypress open",
     "demo:gravar": "cypress run --spec cypress/e2e/jornada-completa.cy.js",
-    "demo:gravar:celular": "cypress run --spec cypress/e2e/jornada-completa.cy.js --config viewportWidth=375,viewportHeight=812,videosFolder=cypress/videos-celular,screenshotsFolder=cypress/screenshots-celular"
+    "demo:gravar:celular": "node scripts/gravar-celular.js"
   },
   "devDependencies": {
     "cypress": "^13.15.0"

@@ -95,6 +95,7 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
   it('Passo 1 — Página inicial apresenta o sistema e leva ao cadastro', () => {
     cy.visit('/');
     cy.contains('h1', 'Controle Financeiro para MEI').should('be.visible');
+    cy.olharTela();
     cy.contains('a', 'Criar minha conta').click();
     cy.location('pathname').should('eq', '/Conta/Registro');
   });
@@ -107,7 +108,8 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
 
     // O cadastro já cria 8 categorias padrão (Vendas, Aluguel, Impostos...)
     // para facilitar o primeiro uso — é o que os próximos passos usam.
-    cy.contains('.nav-link', 'Painel').should('be.visible');
+    cy.contains('.nav-link', 'Painel').should('exist');
+    cy.olharTela();
   });
 
   it('Passo 3 — Categorias padrão já existem, e a usuária cadastra mais duas', () => {
@@ -126,6 +128,7 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
       cy.get('table tbody tr').should('have.length', 8 + indice + 1);
       cy.contains('table tbody tr', categoria.nome).should('contain', categoria.natureza);
     });
+    cy.olharTela();
   });
 
   it('Passo 4 — Registra as receitas do mês (três categorias diferentes)', () => {
@@ -141,6 +144,7 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
 
     // Resumo do mês em Lançamentos já soma as três receitas.
     cy.contains('Receitas em').parent().should('contain', '4.050,00');
+    cy.olharTela();
   });
 
   it('Passo 5 — Registra as despesas do mês (CMV, fixas, variáveis e imposto)', () => {
@@ -157,6 +161,7 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
     // Com receitas e despesas lançadas, o resumo do mês mostra os dois totais.
     cy.contains('Receitas em').parent().should('contain', '4.050,00');
     cy.contains('Despesas em').parent().should('contain', '2.535,00');
+    cy.olharTela();
   });
 
   it('Passo 6 — Define duas metas financeiras (mês atual e o próximo)', () => {
@@ -171,6 +176,7 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
     });
 
     cy.get('.card.card-resumo').should('have.length', metas.length);
+    cy.olharTela();
   });
 
   it('Passo 7 — Registra duas captações de recursos', () => {
@@ -185,6 +191,7 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
     });
 
     cy.get('table tbody tr').should('have.length', captacoes.length);
+    cy.olharTela();
   });
 
   it('Passo 8 — Painel consolida receitas, despesas, saldo, captações e a meta do mês', () => {
@@ -201,7 +208,8 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
       .parents('.card')
       .should('contain', 'Meta de lucro de setembro');
 
-    cy.get('#graficoFluxoCaixa').should('be.visible');
+    cy.get('#graficoFluxoCaixa').should('exist');
+    cy.olharTela(3500);
   });
 
   it('Passo 9 — DRE calcula corretamente todas as linhas do resultado do mês', () => {
@@ -219,7 +227,8 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
 
     // Não houve prejuízo neste mês, então o gráfico de composição (pizza)
     // deve aparecer.
-    cy.get('#graficoDre').should('be.visible');
+    cy.get('#graficoDre').should('exist');
+    cy.olharTela();
   });
 
   it('Passo 10 — Fluxo de Caixa anual mostra o saldo acumulado mês a mês', () => {
@@ -234,12 +243,11 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
       .find('td')
       .eq(mesAtual + 1) // a 1ª coluna é o rótulo da linha
       .should('contain', '1.515,00');
+    cy.olharTela();
   });
 
-  it('Passo final — mantém a sessão ativa e disponibiliza o e-mail e a senha da conta', () => {
+  it('Passo final — passeio pelo Painel, DRE e Fluxo de Caixa com tudo lançado', () => {
     cy.loginComo(usuaria);
-    cy.visit('/Dashboard');
-    cy.contains('h2', `Olá, ${usuaria.nomeNegocio}`).should('be.visible');
 
     const resumoConta = [
       'Conta criada por esta execução da demo Cypress:',
@@ -256,7 +264,34 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
     cy.task('log', `\n${'='.repeat(72)}\n${resumoConta}\n${'='.repeat(72)}\n`);
     cy.writeFile('ultima-conta-demo.txt', `${resumoConta}\n`);
 
-    // Sem logout de propósito: a demo termina com a sessão autenticada e o
-    // Painel na tela, pronta para continuar sendo explorada manualmente.
+    // Passeio final, navegando pelo menu como uma pessoa faria, para
+    // mostrar que tudo o que foi lançado aparece consolidado.
+    cy.visit('/Dashboard');
+    cy.contains('h2', `Olá, ${usuaria.nomeNegocio}`).should('be.visible');
+    cy.contains('.card', 'Saldo geral').should('contain', '1.515,00');
+    cy.olharTela(2500);
+
+    cy.irPeloMenu('DRE');
+    cy.location('pathname').should('eq', '/Dre');
+    cy.contains('tr', 'RECEITA BRUTA TOTAL').should('contain', '4.050,00');
+    cy.contains('tr', 'LUCRO LÍQUIDO DO MÊS').should('contain', '1.515,00');
+    cy.pausa(1500);
+    cy.contains('tr', 'LUCRO LÍQUIDO DO MÊS').scrollIntoView({ duration: 1500, offset: { top: -250, left: 0 } });
+    cy.pausa(3000);
+    cy.olharTela(3500);
+
+    cy.irPeloMenu('Fluxo de Caixa');
+    cy.location('pathname').should('eq', '/FluxoCaixa');
+    const mesAtual = new Date().getMonth();
+    cy.contains('tr', 'SALDO FINAL DO CAIXA')
+      .find('td')
+      .eq(mesAtual + 1)
+      .should('contain', '1.515,00')
+      .scrollIntoView({ duration: 2000, offset: { top: -200, left: -120 } });
+    cy.pausa(4000);
+    cy.olharTela(3500);
+
+    // Sem logout de propósito: a demo termina com a sessão autenticada,
+    // pronta para continuar sendo explorada manualmente.
   });
 });
