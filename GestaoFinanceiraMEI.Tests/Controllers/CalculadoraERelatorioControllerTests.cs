@@ -19,8 +19,8 @@ public class CalculadoraControllerTests
     public void SetUp()
     {
         _calc = new Mock<ICalculadoraPrecoService>();
-        _calc.Setup(c => c.ObterCustosFixosSugeridosAsync(UsuarioId, It.IsAny<DateTime>()))
-            .ReturnsAsync(new SugestaoCustosFixos { Mes = 10, Ano = 2026, Valor = 750m });
+        _calc.Setup(c => c.ObterDespesasFixasSugeridasAsync(UsuarioId, It.IsAny<DateTime>()))
+            .ReturnsAsync(new SugestaoDespesasFixas { Percentual = 25.6m, MesesConsiderados = 1 });
         _controller = new CalculadoraController(_calc.Object).ComoUsuarioAutenticado(UsuarioId);
     }
 
@@ -28,29 +28,41 @@ public class CalculadoraControllerTests
     public void TearDown() => _controller.Dispose();
 
     [Test]
-    public async Task Index_PrimeiraVisita_PreencheCustosFixosSugeridos_ENaoCalcula()
+    public async Task Index_PrimeiraVisita_PreencheDfSugerido_ENaoCalcula()
     {
         var view = await _controller.Index(new EntradaCalculadoraPreco()) as ViewResult;
         var modelo = (CalculadoraPrecoViewModel)view!.Model!;
 
         Assert.That(modelo.Resultado, Is.Null);
-        Assert.That(modelo.Entrada.CustosFixosMes, Is.EqualTo(750m));
+        Assert.That(modelo.Entrada.DespesasFixasPercentual, Is.EqualTo(25.6m));
+        Assert.That(modelo.Entrada.DespesasVariaveisPercentual, Is.EqualTo(0m));
         Assert.That(modelo.Entrada.LucroPercentual, Is.EqualTo(20m));
         _calc.Verify(c => c.Calcular(It.IsAny<EntradaCalculadoraPreco>()), Times.Never);
     }
 
     [Test]
+    public async Task Index_PrimeiraVisitaSemHistorico_DeixaDfEmBranco()
+    {
+        _calc.Setup(c => c.ObterDespesasFixasSugeridasAsync(UsuarioId, It.IsAny<DateTime>()))
+            .ReturnsAsync(new SugestaoDespesasFixas());
+
+        var modelo = (CalculadoraPrecoViewModel)((ViewResult)await _controller.Index(new EntradaCalculadoraPreco())).Model!;
+
+        Assert.That(modelo.Entrada.DespesasFixasPercentual, Is.Null);
+    }
+
+    [Test]
     public async Task Index_ComCustoInformado_CalculaEMantemOsValoresDigitados()
     {
-        var entrada = new EntradaCalculadoraPreco { CustoUnitario = 25m, CustosFixosMes = 100m, QuantidadeMes = 10 };
-        var esperado = new ResultadoCalculadoraPreco { PrecoSugerido = 50m };
+        var entrada = new EntradaCalculadoraPreco { CustoUnitario = 50m, DespesasFixasPercentual = 15m, DespesasVariaveisPercentual = 10m, LucroPercentual = 20m };
+        var esperado = new ResultadoCalculadoraPreco { PrecoSugerido = 90.91m };
         _calc.Setup(c => c.Calcular(entrada)).Returns(esperado);
 
         var view = await _controller.Index(entrada) as ViewResult;
         var modelo = (CalculadoraPrecoViewModel)view!.Model!;
 
         Assert.That(modelo.Resultado, Is.SameAs(esperado));
-        Assert.That(modelo.Entrada.CustosFixosMes, Is.EqualTo(100m)); // não sobrescreve com a sugestão
+        Assert.That(modelo.Entrada.DespesasFixasPercentual, Is.EqualTo(15m)); // não sobrescreve com a sugestão
     }
 }
 

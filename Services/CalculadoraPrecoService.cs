@@ -3,57 +3,56 @@ namespace GestaoFinanceiraMEI.Services;
 /// <inheritdoc cref="ICalculadoraPrecoService"/>
 public class CalculadoraPrecoService : ICalculadoraPrecoService
 {
-    private readonly IDreService _dreService;
+    private readonly IRelatorioCreditoService _relatorio;
 
-    public CalculadoraPrecoService(IDreService dreService)
+    public CalculadoraPrecoService(IRelatorioCreditoService relatorio)
     {
-        _dreService = dreService;
+        _relatorio = relatorio;
     }
 
     public ResultadoCalculadoraPreco Calcular(EntradaCalculadoraPreco entrada)
     {
         var resultado = new ResultadoCalculadoraPreco();
 
-        var custoUnitario = entrada.CustoUnitario ?? 0m;
-        var custosFixos = entrada.CustosFixosMes ?? 0m;
-        var quantidade = entrada.QuantidadeMes ?? 0;
-        var taxas = entrada.TaxasPercentual ?? 0m;
-        var lucro = entrada.LucroPercentual ?? 0m;
+        var custo = entrada.CustoUnitario ?? 0m;
+        var df = entrada.DespesasFixasPercentual ?? 0m;
+        var dv = entrada.DespesasVariaveisPercentual ?? 0m;
+        var ml = entrada.LucroPercentual ?? 0m;
 
-        if (custoUnitario < 0) resultado.Erros.Add("O custo da unidade não pode ser negativo.");
-        if (custosFixos < 0) resultado.Erros.Add("Os custos fixos não podem ser negativos.");
-        if (quantidade < 1) resultado.Erros.Add("Informe quantas unidades você vende por mês (pelo menos 1).");
-        if (taxas < 0 || lucro < 0) resultado.Erros.Add("Taxas e lucro não podem ser negativos.");
-        if (taxas + lucro >= 100)
-            resultado.Erros.Add("Taxas + lucro precisam somar menos de 100%. Com 100% ou mais, nenhum preço cobre os custos.");
-        if (custoUnitario == 0 && custosFixos == 0)
-            resultado.Erros.Add("Informe o custo da unidade ou os custos fixos do mês.");
+        if (custo <= 0) resultado.Erros.Add("Informe o custo direto de uma unidade (maior que zero).");
+        if (df < 0 || dv < 0 || ml < 0) resultado.Erros.Add("Os percentuais não podem ser negativos.");
+        if (df + dv + ml >= 100)
+            resultado.Erros.Add("Despesas fixas + despesas variáveis + lucro precisam somar menos de 100%. Com 100% ou mais, nenhum preço cobre a conta.");
 
         if (!resultado.Valido) return resultado;
 
-        resultado.CustoFixoPorUnidade = Math.Round(custosFixos / quantidade, 2);
-        resultado.CustoTotalPorUnidade = custoUnitario + resultado.CustoFixoPorUnidade;
+        var divisor = 1m - (df + dv + ml) / 100m;
+        resultado.MarkupDivisor = Math.Round(divisor, 4);
+        resultado.MarkupMultiplicador = Math.Round(1m / divisor, 3);
+        resultado.PrecoSugerido = Math.Round(custo / divisor, 2);
 
-        var divisor = 1m - (taxas + lucro) / 100m;
-        resultado.PrecoSugerido = Math.Round(resultado.CustoTotalPorUnidade / divisor, 2);
-        resultado.TaxasPorUnidade = Math.Round(resultado.PrecoSugerido * taxas / 100m, 2);
-        resultado.LucroPorUnidade = resultado.PrecoSugerido - resultado.CustoTotalPorUnidade - resultado.TaxasPorUnidade;
-        resultado.FaturamentoNoMes = resultado.PrecoSugerido * quantidade;
-        resultado.LucroNoMes = resultado.LucroPorUnidade * quantidade;
+        resultado.CustoPorUnidade = custo;
+        resultado.DespesasFixasPorUnidade = Math.Round(resultado.PrecoSugerido * df / 100m, 2);
+        resultado.DespesasVariaveisPorUnidade = Math.Round(resultado.PrecoSugerido * dv / 100m, 2);
+        // O lucro fecha a conta, para as quatro partes somarem exatamente o preço.
+        resultado.LucroPorUnidade = resultado.PrecoSugerido - custo
+            - resultado.DespesasFixasPorUnidade - resultado.DespesasVariaveisPorUnidade;
 
         return resultado;
     }
 
-    public async Task<SugestaoCustosFixos> ObterCustosFixosSugeridosAsync(int usuarioId, DateTime hoje)
+    public async Task<SugestaoDespesasFixas> ObterDespesasFixasSugeridasAsync(int usuarioId, DateTime hoje)
     {
-        var mesAnterior = new DateTime(hoje.Year, hoje.Month, 1).AddMonths(-1);
-        var dre = await _dreService.ObterDreAsync(usuarioId, mesAnterior.Month, mesAnterior.Year);
+        var rel = await _relatorio.ObterRelatorioAsync(usuarioId, hoje);
+        var sugestao = new SugestaoDespesasFixas { MesesConsiderados = rel.MesesConsiderados };
 
-        return new SugestaoCustosFixos
-        {
-            Mes = mesAnterior.Month,
-            Ano = mesAnterior.Year,
-            Valor = dre.DespesasFixas
-        };
+        if (rel.MesesConsiderados == 0 || rel.FaturamentoTotal <= 0) return sugestao;
+
+        // Para o MEI, o DAS (deduções e impostos) é um valor fixo mensal: entra no DF.
+        var fixas = rel.DespesasFixas + rel.DeducoesEImpostos;
+        sugestao.DespesasFixasMedia = Math.Round(fixas / rel.MesesConsiderados, 2);
+        sugestao.FaturamentoMedio = rel.FaturamentoMedio;
+        sugestao.Percentual = Math.Round(fixas / rel.FaturamentoTotal * 100m, 1);
+        return sugestao;
     }
 }

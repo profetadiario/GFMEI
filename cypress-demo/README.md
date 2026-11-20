@@ -64,6 +64,32 @@ Caixa). Leva uns 5 minutos e gera `cypress/videos-celular/demo-celular.mp4`
 npm run demo:gravar:celular
 ```
 
+**Vídeo da apresentação (desktop 1920×1080).** Cria uma conta fictícia de
+confeitaria com dois meses de histórico (`cypress/apresentacao/1-preparo.cy.js`)
+e grava o roteiro de 7 telas (`2-apresentacao.cy.js`): Painel, lançamento
+rápido, retirada pessoal, DRE, Fluxo de caixa, Calculadora (exemplo da
+orientadora, R$ 90,91) e Relatório para o banco com o Ctrl+P. Leva uns 8
+minutos e gera em `docs/demo/` o vídeo completo (~2 min 20 s), a versão curta
+de reserva (< 1 min) e as capturas `capturas/01_painel.png` …
+`07_relatorio_banco.png`. Para gravar contra o site publicado, informe
+`BASE_URL`:
+
+```bash
+npm run demo:apresentacao
+BASE_URL=<endereço do site no Somee> npm run demo:apresentacao
+```
+
+**Teste do PDF do relatório para o banco.** Depois da demo (que cria o
+cenário), entra com a conta da demo, gera o PDF como o Ctrl+P (A4, CSS de
+impressão) e confere 24 itens: valores, DRE, tabela de 12 meses, quadro dos
+bancos, ausência de menu e botões, no máximo 2 páginas e nenhum bloco
+sobreposto. Usa o Chrome ou o Edge instalados (`CHROME_PATH` para outro).
+Para o Somee: `BASE_URL=... PDF_EMAIL=... PDF_SENHA=... npm run teste:pdf`.
+
+```bash
+npm run teste:pdf
+```
+
 ## Observações
 
 - Cada execução cria uma conta nova (e-mail com timestamp), então a demo
