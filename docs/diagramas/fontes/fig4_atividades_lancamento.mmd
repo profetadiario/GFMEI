@@ -1,0 +1,21 @@
+flowchart TB
+    I((Início)) --> A{"Está autenticada?"}
+    A -- Não --> L["Exibir tela de login"] --> A
+    A -- Sim --> F["Abrir lançamento rápido<br/>(Novo lançamento)"]
+    F --> T["Escolher tipo:<br/>entrada ou saída"]
+    T --> V["Informar o valor"]
+    V --> O{"Saída do negócio<br/>ou pessoal?"}
+    O -- "Do negócio / entrada" --> C["Escolher a categoria<br/>(descrição opcional)"]
+    O -- Pessoal --> R["Retirada pessoal:<br/>categoria definida pelo sistema"]
+    C --> D{"Dados válidos?<br/>categoria compatível<br/>com o tipo?"}
+    R --> D
+    D -- Não --> E["Exibir mensagens de erro"] --> T
+    D -- Sim --> S["Salvar lançamento<br/>(descrição vazia = nome da categoria)"]
+    S --> X["DRE, fluxo de caixa e painel<br/>recalculados (retirada<br/>pessoal fora do DRE)"]
+    X --> N{"Salvar e<br/>lançar outro?"}
+    N -- Sim --> T
+    N -- Não --> LI["Exibir a lista de lançamentos<br/>com o saldo do mês"] --> FIM((Fim))
+    classDef inicio fill:#6f2c91,stroke:#6f2c91,color:#fff;
+    classDef decisao fill:#fdf1dc,stroke:#d4a017;
+    class I,FIM inicio;
+    class A,O,D,N decisao;

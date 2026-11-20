@@ -3,31 +3,35 @@ classDiagram
     class ICalculadoraPrecoService {
         <<interface>>
         +Calcular(entrada) ResultadoCalculadoraPreco
-        +ObterCustosFixosSugeridosAsync(usuarioId, hoje) SugestaoCustosFixos
+        +ObterDespesasFixasSugeridasAsync(usuarioId, hoje)
     }
     class CalculadoraPrecoService {
-        -IDreService _dre
+        -IRelatorioCreditoService _relatorio
         +Calcular(entrada) ResultadoCalculadoraPreco
-        +ObterCustosFixosSugeridosAsync(usuarioId, hoje) SugestaoCustosFixos
+        +ObterDespesasFixasSugeridasAsync(usuarioId, hoje)
     }
     class EntradaCalculadoraPreco {
         +decimal CustoUnitario
-        +decimal CustosFixosMes
-        +int QuantidadeMes
-        +decimal TaxasPercentual
+        +decimal DespesasFixasPercentual
+        +decimal DespesasVariaveisPercentual
         +decimal LucroPercentual
     }
     class ResultadoCalculadoraPreco {
         +bool Valido
         +string[] Erros
-        +decimal CustoTotalPorUnidade
+        +decimal MarkupDivisor
+        +decimal MarkupMultiplicador
         +decimal PrecoSugerido
-        +decimal TaxasPorUnidade
+        +decimal CustoPorUnidade
+        +decimal DespesasFixasPorUnidade
+        +decimal DespesasVariaveisPorUnidade
         +decimal LucroPorUnidade
-        +decimal FaturamentoNoMes
     }
-    class IDreService {
-        <<interface>>
+    class SugestaoDespesasFixas {
+        +decimal Percentual
+        +decimal DespesasFixasMedia
+        +decimal FaturamentoMedio
+        +int MesesConsiderados
     }
     class IRelatorioCreditoService {
         <<interface>>
@@ -69,7 +73,8 @@ classDiagram
     ICalculadoraPrecoService <|.. CalculadoraPrecoService : implementa
     CalculadoraPrecoService ..> EntradaCalculadoraPreco : recebe
     CalculadoraPrecoService ..> ResultadoCalculadoraPreco : produz
-    CalculadoraPrecoService --> IDreService : usa
+    CalculadoraPrecoService ..> SugestaoDespesasFixas : sugere DF%
+    CalculadoraPrecoService --> IRelatorioCreditoService : usa
     IRelatorioCreditoService <|.. RelatorioCreditoService : implementa
     RelatorioCreditoService ..> RelatorioCredito : produz
     RelatorioCredito "1" *-- "12" MesRelatorio
