@@ -9,5 +9,5 @@ public class CalculadoraPrecoViewModel
     /// <summary>Null enquanto a usuária ainda não preencheu o formulário.</summary>
     public ResultadoCalculadoraPreco? Resultado { get; set; }
 
-    public SugestaoCustosFixos Sugestao { get; set; } = new();
+    public SugestaoDespesasFixas Sugestao { get; set; } = new();
 }

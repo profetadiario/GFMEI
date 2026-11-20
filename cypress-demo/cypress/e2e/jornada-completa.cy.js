@@ -246,26 +246,32 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
     cy.olharTela();
   });
 
-  it('Passo 11 — Calculadora de preço sugere quanto cobrar por peça', () => {
+  it('Passo 11 — Calculadora de preço pelo markup divisor (exemplo da orientadora)', () => {
     cy.loginComo(usuaria);
     cy.visit('/Dashboard');
     cy.irPeloMenu('Calculadora de preço');
     cy.location('pathname').should('eq', '/Calculadora');
+
+    // O DF% já vem sugerido pelos lançamentos, com o DAS dentro:
+    // (aluguel 750 + DAS 285) ÷ faturamento 4.050 = 25,6%.
+    cy.get('#sugestaoDf').should('contain', '25,6%');
+    cy.get('#DespesasFixasPercentual').should('have.value', '25,6');
     cy.pausa(1500);
 
-    // Peça de R$ 25,00 de material, R$ 750,00 de custos fixos divididos por
-    // 50 peças no mês, 5% de taxa da maquininha e 20% de lucro:
-    // (25 + 750/50) / (1 - 0,25) = R$ 53,33.
-    cy.get('#CustoUnitario').clear().type('25,00');
-    cy.get('#CustosFixosMes').clear().type('750,00');
-    cy.get('#QuantidadeMes').clear().type('50');
-    cy.get('#TaxasPercentual').clear().type('5');
+    // Exemplo da Annik: custo R$ 50,00, DF 15%, DV 10%, lucro 20%
+    // → divisor 0,55, multiplicador 1,818, preço R$ 90,91.
+    cy.get('#CustoUnitario').clear().type('50,00');
+    cy.get('#DespesasFixasPercentual').clear().type('15');
+    cy.get('#DespesasVariaveisPercentual').clear().type('10');
     cy.get('#LucroPercentual').clear().type('20');
     cy.pausa(1000);
     cy.contains('button', 'Calcular preço').click();
 
-    cy.get('#precoSugerido').should('contain', '53,33');
-    cy.get('#resumoMes').should('contain', '50').and('contain', '2.666,50');
+    cy.get('#precoSugerido').should('contain', '90,91');
+    cy.get('#markupDivisor').should('have.text', '0,55');
+    cy.get('#markupMultiplicador').should('have.text', '1,818');
+    cy.get('#composicaoPreco').should('contain', '13,64').and('contain', '9,09').and('contain', '18,18');
+    cy.get('#avisoMarkup').should('contain', 'Markup não é margem de lucro');
     cy.olharTela(3000);
   });
 

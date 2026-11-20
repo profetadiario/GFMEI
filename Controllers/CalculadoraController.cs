@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace GestaoFinanceiraMEI.Controllers;
 
 /// <summary>
-/// Calculadora de preço de venda. Não grava nada: o formulário é enviado
-/// por GET e o resultado é calculado na hora. O campo de custos fixos já
-/// vem sugerido com as despesas fixas do mês anterior.
+/// Calculadora de preço de venda pelo markup divisor (decisão 8). Não grava
+/// nada: o formulário é enviado por GET e o resultado é calculado na hora.
+/// O DF% já vem sugerido a partir dos lançamentos, com o DAS dentro.
 /// </summary>
 public class CalculadoraController : AutenticadoController
 {
@@ -20,7 +20,7 @@ public class CalculadoraController : AutenticadoController
 
     public async Task<IActionResult> Index([FromQuery] EntradaCalculadoraPreco entrada)
     {
-        var sugestao = await _calculadora.ObterCustosFixosSugeridosAsync(UsuarioId, DateTime.Today);
+        var sugestao = await _calculadora.ObterDespesasFixasSugeridasAsync(UsuarioId, DateTime.Today);
 
         var modelo = new CalculadoraPrecoViewModel { Entrada = entrada, Sugestao = sugestao };
 
@@ -31,8 +31,8 @@ public class CalculadoraController : AutenticadoController
         else
         {
             // Primeira visita: valores iniciais para a usuária só ajustar.
-            entrada.CustosFixosMes ??= sugestao.Valor;
-            entrada.TaxasPercentual ??= 0m;
+            entrada.DespesasFixasPercentual ??= sugestao.Percentual;
+            entrada.DespesasVariaveisPercentual ??= 0m;
             entrada.LucroPercentual ??= 20m;
         }
 

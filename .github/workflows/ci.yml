@@ -1,0 +1,39 @@
+name: CI (build e testes)
+
+# Roda a cada push/PR na develop e na master. O deploy para o Somee
+# (deploy-somee.yml) chama este mesmo workflow e só publica se ele passar.
+on:
+  push:
+    branches: [ develop, master ]
+  pull_request:
+    branches: [ develop, master ]
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  build-e-testes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restaurar dependências
+        run: dotnet restore GestaoFinanceiraMEI.sln
+
+      - name: Compilar
+        run: dotnet build GestaoFinanceiraMEI.sln -c Release --no-restore
+
+      - name: Testes (NUnit)
+        run: dotnet test GestaoFinanceiraMEI.sln -c Release --no-build --logger "trx;LogFileName=resultado.trx"
+
+      - name: Guardar resultado dos testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultado-testes
+          path: "**/TestResults/*.trx"

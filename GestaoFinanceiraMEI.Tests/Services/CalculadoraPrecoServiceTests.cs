@@ -7,122 +7,174 @@ namespace GestaoFinanceiraMEI.Tests.Services;
 [TestFixture]
 public class CalculadoraPrecoServiceTests
 {
-    private Mock<IDreService> _dre = null!;
+    private Mock<IRelatorioCreditoService> _relatorio = null!;
     private CalculadoraPrecoService _service = null!;
+    private static readonly DateTime Hoje = new(2026, 11, 20);
 
     [SetUp]
     public void SetUp()
     {
-        _dre = new Mock<IDreService>();
-        _service = new CalculadoraPrecoService(_dre.Object);
+        _relatorio = new Mock<IRelatorioCreditoService>();
+        _service = new CalculadoraPrecoService(_relatorio.Object);
     }
 
-    private static EntradaCalculadoraPreco Entrada(decimal custo = 25m, decimal fixos = 750m, int qtd = 50, decimal taxas = 5m, decimal lucro = 20m) =>
-        new() { CustoUnitario = custo, CustosFixosMes = fixos, QuantidadeMes = qtd, TaxasPercentual = taxas, LucroPercentual = lucro };
+    private static EntradaCalculadoraPreco Entrada(decimal? custo = 50m, decimal? df = 15m, decimal? dv = 10m, decimal? ml = 20m) =>
+        new() { CustoUnitario = custo, DespesasFixasPercentual = df, DespesasVariaveisPercentual = dv, LucroPercentual = ml };
+
+    // ---------------- exemplo da orientadora (decisão 8) ----------------
 
     [Test]
-    public void Calcular_AplicaMarkupDivisor()
+    public void Calcular_ExemploDaAnnik_Divisor055_Multiplicador1818_Preco9091()
     {
-        // custo total = 25 + 750/50 = 40; preço = 40 / (1 - 0,25) = 53,33
         var r = _service.Calcular(Entrada());
 
         Assert.That(r.Valido, Is.True);
-        Assert.That(r.CustoFixoPorUnidade, Is.EqualTo(15.00m));
-        Assert.That(r.CustoTotalPorUnidade, Is.EqualTo(40.00m));
-        Assert.That(r.PrecoSugerido, Is.EqualTo(53.33m));
+        Assert.That(r.MarkupDivisor, Is.EqualTo(0.55m));
+        Assert.That(r.MarkupMultiplicador, Is.EqualTo(1.818m));
+        Assert.That(r.PrecoSugerido, Is.EqualTo(90.91m));
     }
 
     [Test]
-    public void Calcular_PrecoCobreCustoTaxasELucro()
+    public void Calcular_ExemploDaAnnik_ParaOndeVaiCadaVenda()
     {
         var r = _service.Calcular(Entrada());
 
-        Assert.That(r.TaxasPorUnidade, Is.EqualTo(2.67m)); // 5% de 53,33
-        Assert.That(r.CustoTotalPorUnidade + r.TaxasPorUnidade + r.LucroPorUnidade, Is.EqualTo(r.PrecoSugerido));
-        Assert.That(r.LucroPorUnidade, Is.EqualTo(10.66m)); // ~20% do preço
+        Assert.That(r.CustoPorUnidade, Is.EqualTo(50m));
+        Assert.That(r.DespesasFixasPorUnidade, Is.EqualTo(13.64m));     // 15% de 90,91
+        Assert.That(r.DespesasVariaveisPorUnidade, Is.EqualTo(9.09m));  // 10% de 90,91
+        Assert.That(r.LucroPorUnidade, Is.EqualTo(18.18m));             // 20% de 90,91
+    }
+
+    [TestCase(50, 15, 10, 20)]
+    [TestCase(12.37, 33.3, 4.9, 17.5)]
+    [TestCase(7, 0, 0, 0)]
+    public void Calcular_AsQuatroPartesSomamExatamenteOPreco(decimal custo, decimal df, decimal dv, decimal ml)
+    {
+        var r = _service.Calcular(Entrada(custo, df, dv, ml));
+
+        Assert.That(r.CustoPorUnidade + r.DespesasFixasPorUnidade + r.DespesasVariaveisPorUnidade + r.LucroPorUnidade,
+            Is.EqualTo(r.PrecoSugerido));
     }
 
     [Test]
-    public void Calcular_TotaisDoMes_MultiplicamPelaQuantidade()
+    public void Calcular_SemPercentuais_PrecoIgualAoCusto_EMultiplicadorUm()
     {
-        var r = _service.Calcular(Entrada());
-
-        Assert.That(r.FaturamentoNoMes, Is.EqualTo(53.33m * 50));
-        Assert.That(r.LucroNoMes, Is.EqualTo(r.LucroPorUnidade * 50));
-    }
-
-    [Test]
-    public void Calcular_SemTaxasNemLucro_PrecoIgualAoCusto()
-    {
-        var r = _service.Calcular(Entrada(custo: 10m, fixos: 0m, qtd: 1, taxas: 0m, lucro: 0m));
+        var r = _service.Calcular(Entrada(custo: 10m, df: 0m, dv: 0m, ml: 0m));
 
         Assert.That(r.PrecoSugerido, Is.EqualTo(10m));
-        Assert.That(r.LucroPorUnidade, Is.EqualTo(0m));
+        Assert.That(r.MarkupDivisor, Is.EqualTo(1m));
+        Assert.That(r.MarkupMultiplicador, Is.EqualTo(1m));
     }
 
-    [TestCase(60, 40)]
-    [TestCase(100, 0)]
-    [TestCase(70, 50)]
-    public void Calcular_TaxasMaisLucroAte100PorCento_EhInvalido(decimal taxas, decimal lucro)
+    [Test]
+    public void Calcular_PercentuaisVazios_SaoTratadosComoZero()
     {
-        var r = _service.Calcular(Entrada(taxas: taxas, lucro: lucro));
+        var r = _service.Calcular(Entrada(custo: 10m, df: null, dv: null, ml: null));
+
+        Assert.That(r.Valido, Is.True);
+        Assert.That(r.PrecoSugerido, Is.EqualTo(10m));
+    }
+
+    // ---------------- limites ----------------
+
+    [TestCase(60, 20, 20)]   // exatamente 100%
+    [TestCase(50, 30, 30)]   // acima de 100%
+    [TestCase(0, 0, 100)]
+    public void Calcular_SomaDe100PorCentoOuMais_EhBloqueada(decimal df, decimal dv, decimal ml)
+    {
+        var r = _service.Calcular(Entrada(df: df, dv: dv, ml: ml));
 
         Assert.That(r.Valido, Is.False);
         Assert.That(r.Erros, Has.Some.Contains("menos de 100%"));
+        Assert.That(r.PrecoSugerido, Is.EqualTo(0m));
     }
 
     [Test]
-    public void Calcular_QuantidadeZero_EhInvalido()
+    public void Calcular_SomaDe99Virgula9PorCento_AindaCalcula()
     {
-        var r = _service.Calcular(Entrada(qtd: 0));
+        var r = _service.Calcular(Entrada(custo: 1m, df: 40m, dv: 39.9m, ml: 20m));
+
+        Assert.That(r.Valido, Is.True);
+        Assert.That(r.PrecoSugerido, Is.EqualTo(1000m));
+    }
+
+    [TestCase(0)]
+    [TestCase(-5)]
+    public void Calcular_CustoZeroOuNegativo_EhInvalido(decimal custo)
+    {
+        var r = _service.Calcular(Entrada(custo: custo));
 
         Assert.That(r.Valido, Is.False);
-        Assert.That(r.Erros, Has.Some.Contains("unidades"));
+        Assert.That(r.Erros, Has.Some.Contains("custo direto"));
     }
 
     [Test]
-    public void Calcular_ValoresNegativos_SaoInvalidos()
+    public void Calcular_PercentualNegativo_EhInvalido()
     {
-        Assert.That(_service.Calcular(Entrada(custo: -1m)).Valido, Is.False);
-        Assert.That(_service.Calcular(Entrada(fixos: -1m)).Valido, Is.False);
-        Assert.That(_service.Calcular(Entrada(lucro: -5m)).Valido, Is.False);
+        Assert.That(_service.Calcular(Entrada(df: -1m)).Valido, Is.False);
+        Assert.That(_service.Calcular(Entrada(dv: -1m)).Valido, Is.False);
+        Assert.That(_service.Calcular(Entrada(ml: -1m)).Valido, Is.False);
+    }
+
+    // ---------------- DF% sugerido ----------------
+
+    private void ComRelatorio(RelatorioCredito r) =>
+        _relatorio.Setup(s => s.ObterRelatorioAsync(1, Hoje)).ReturnsAsync(r);
+
+    private static RelatorioCredito Relatorio(int mesesConsiderados, params MesRelatorio[] meses)
+    {
+        var r = new RelatorioCredito { MesesConsiderados = mesesConsiderados };
+        r.Meses.AddRange(meses);
+        return r;
     }
 
     [Test]
-    public void Calcular_SemCustoNenhum_EhInvalido()
+    public async Task DfSugerido_SemHistorico_NaoSugere()
     {
-        var r = _service.Calcular(Entrada(custo: 0m, fixos: 0m));
+        ComRelatorio(Relatorio(0));
 
-        Assert.That(r.Valido, Is.False);
+        var s = await _service.ObterDespesasFixasSugeridasAsync(1, Hoje);
+
+        Assert.That(s.TemSugestao, Is.False);
+        Assert.That(s.Percentual, Is.Null);
     }
 
     [Test]
-    public void Calcular_CamposVazios_TratadosComoZero_EReportaErros()
+    public async Task DfSugerido_ComDespesasMasSemFaturamento_NaoSugere()
     {
-        var r = _service.Calcular(new EntradaCalculadoraPreco { CustoUnitario = 10m });
+        ComRelatorio(Relatorio(1, new MesRelatorio { DespesasFixas = 750m }));
 
-        Assert.That(r.Valido, Is.False); // quantidade vazia
+        var s = await _service.ObterDespesasFixasSugeridasAsync(1, Hoje);
+
+        Assert.That(s.TemSugestao, Is.False);
     }
 
     [Test]
-    public async Task ObterCustosFixosSugeridosAsync_UsaDespesasFixasDoMesAnterior()
+    public async Task DfSugerido_ComHistorico_IncluiODasNoDf()
     {
-        _dre.Setup(d => d.ObterDreAsync(1, 10, 2026)).ReturnsAsync(new DreMensal { Mes = 10, Ano = 2026, DespesasFixas = 750m });
+        // Cenário da demo: faturamento 4.050, aluguel 750 e DAS 285 → (750 + 285) ÷ 4.050 = 25,6%.
+        ComRelatorio(Relatorio(1, new MesRelatorio { Receitas = 4050m, DespesasFixas = 750m, DeducoesEImpostos = 285m, DespesasVariaveis = 520m }));
 
-        var s = await _service.ObterCustosFixosSugeridosAsync(1, new DateTime(2026, 11, 19));
+        var s = await _service.ObterDespesasFixasSugeridasAsync(1, Hoje);
 
-        Assert.That(s.Mes, Is.EqualTo(10));
-        Assert.That(s.Ano, Is.EqualTo(2026));
-        Assert.That(s.Valor, Is.EqualTo(750m));
+        Assert.That(s.Percentual, Is.EqualTo(25.6m));
+        Assert.That(s.DespesasFixasMedia, Is.EqualTo(1035m));
+        Assert.That(s.FaturamentoMedio, Is.EqualTo(4050m));
     }
 
     [Test]
-    public async Task ObterCustosFixosSugeridosAsync_EmJaneiro_UsaDezembroDoAnoAnterior()
+    public async Task DfSugerido_UsaAMediaDosMesesConsiderados()
     {
-        _dre.Setup(d => d.ObterDreAsync(1, 12, 2025)).ReturnsAsync(new DreMensal { DespesasFixas = 300m });
+        // Mês fraco e mês forte: a média suaviza a oscilação das vendas.
+        ComRelatorio(Relatorio(2,
+            new MesRelatorio { Receitas = 2000m, DespesasFixas = 600m, DeducoesEImpostos = 80m },
+            new MesRelatorio { Receitas = 6000m, DespesasFixas = 600m, DeducoesEImpostos = 80m }));
 
-        var s = await _service.ObterCustosFixosSugeridosAsync(1, new DateTime(2026, 1, 5));
+        var s = await _service.ObterDespesasFixasSugeridasAsync(1, Hoje);
 
-        Assert.That((s.Mes, s.Ano, s.Valor), Is.EqualTo((12, 2025, 300m)));
+        Assert.That(s.MesesConsiderados, Is.EqualTo(2));
+        Assert.That(s.DespesasFixasMedia, Is.EqualTo(680m));
+        Assert.That(s.FaturamentoMedio, Is.EqualTo(4000m));
+        Assert.That(s.Percentual, Is.EqualTo(17m)); // 1.360 ÷ 8.000
     }
 }

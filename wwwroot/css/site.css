@@ -101,6 +101,13 @@ body {
     .container { max-width: 100% !important; }
     .card, .card-resumo { box-shadow: none !important; border: 1px solid #ccc !important; }
     .quebra-evitar, .card { break-inside: avoid; page-break-inside: avoid; }
+    /* Cards com altura fixa (h-100) dentro de linhas flex são cortados ao paginar: na impressão a altura é a do conteúdo. */
+    .relatorio-credito .h-100 { height: auto !important; }
+    .relatorio-credito .row { display: block; }
+    .relatorio-credito .row > [class*="col-"] { width: 100%; max-width: 100%; margin-bottom: .75rem; }
+    .relatorio-credito .row.manter-linha { display: flex; flex-wrap: nowrap; }
+    .relatorio-credito .row.manter-linha > [class*="col-"] { flex: 1 1 0; width: auto; margin-bottom: 0; }
+    .relatorio-credito .valor { font-size: 1.25rem; }
     .table-responsive { overflow: visible !important; }
     .tabela-relatorio { font-size: 9pt; }
     a[href]::after { content: none !important; }

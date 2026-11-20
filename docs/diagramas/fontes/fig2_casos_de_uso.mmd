@@ -6,14 +6,14 @@ flowchart LR
         UC2(["Entrar no sistema"])
         UC3(["Gerenciar categorias<br/>de receita/despesa"])
         UC4(["Registrar receita ou despesa<br/>(Lançamentos)"])
-        UC4b(["Registrar retirada pessoal"])
+        UC4b(["Registrar retirada pessoal<br/>(fora do DRE)"])
         UC5(["Definir meta<br/>financeira mensal"])
         UC6(["Acompanhar progresso<br/>da meta"])
         UC7(["Registrar captação<br/>de recursos"])
         UC8(["Visualizar painel de<br/>análise financeira"])
         UC9(["Consultar DRE mensal<br/>(lucro ou prejuízo)"])
         UC10(["Consultar fluxo de caixa<br/>mensal (jan. a dez.)"])
-        UC11(["Calcular preço de venda"])
+        UC11(["Calcular preço de venda<br/>(markup divisor)"])
         UC12(["Gerar relatório para o banco"])
         UC13(["Simular parcela de crédito"])
     end
@@ -23,6 +23,5 @@ flowchart LR
     UC6 -. inclui .-> UC9
     UC8 -. inclui .-> UC9
     UC8 -. inclui .-> UC10
-    UC11 -. inclui .-> UC9
     UC12 -. inclui .-> UC9
     UC13 -. estende .-> UC12

@@ -5,3 +5,6 @@ cypress/videos-celular/
 cypress/screenshots-celular/
 cypress/downloads/
 ultima-conta-demo.txt
+relatorio-teste.pdf
+cypress/videos-apresentacao/
+cypress/screenshots-apresentacao/

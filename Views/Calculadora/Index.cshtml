@@ -3,14 +3,15 @@
     ViewData["Title"] = "Calculadora de preço";
     var e = Model.Entrada;
     var r = Model.Resultado;
+    var s = Model.Sugestao;
     var pt = new System.Globalization.CultureInfo("pt-BR");
-    var nomeMesSugestao = new DateTime(Model.Sugestao.Ano, Model.Sugestao.Mes, 1).ToString("MMMM/yyyy", pt);
     string V(decimal? valor) => valor.HasValue ? valor.Value.ToString("0.##", pt) : string.Empty;
+    string R(decimal valor) => "R$ " + valor.ToString("N2", pt);
 }
 
 <h2 class="mb-1">Calculadora de preço</h2>
 <p class="text-muted mb-4">
-    Descubra por quanto vender cada produto ou serviço para pagar os custos e ainda ter lucro.
+    Descubra por quanto vender cada produto ou serviço para pagar as despesas e ainda ter lucro.
     Nada aqui é gravado: é só uma conta para ajudar você a decidir.
 </p>
 
@@ -18,34 +19,36 @@
     <div class="col-lg-6">
         <form method="get" class="card card-resumo p-3">
             <div class="mb-3">
-                <label class="form-label fw-semibold" for="CustoUnitario">Quanto custa fazer (ou comprar) uma unidade? (R$)</label>
-                <input class="form-control form-control-lg" id="CustoUnitario" name="CustoUnitario" inputmode="decimal" value="@V(e.CustoUnitario)" placeholder="Ex.: 25,00" />
+                <label class="form-label fw-semibold" for="CustoUnitario">Custo direto de uma unidade (R$)</label>
+                <input class="form-control form-control-lg" id="CustoUnitario" name="CustoUnitario" inputmode="decimal" value="@V(e.CustoUnitario)" placeholder="Ex.: 50,00" />
                 <div class="form-text">Material, mercadoria e embalagem de <strong>uma</strong> peça ou serviço.</div>
             </div>
             <div class="mb-3">
-                <label class="form-label fw-semibold" for="CustosFixosMes">Custos fixos do mês (R$)</label>
-                <input class="form-control form-control-lg" id="CustosFixosMes" name="CustosFixosMes" inputmode="decimal" value="@V(e.CustosFixosMes)" />
-                <div class="form-text" id="sugestaoCustosFixos">
-                    Contas que vêm todo mês, vendendo ou não (aluguel, internet, DAS...).
-                    @if (Model.Sugestao.Valor > 0)
+                <label class="form-label fw-semibold" for="DespesasFixasPercentual">Despesas fixas (DF %)</label>
+                <input class="form-control form-control-lg" id="DespesasFixasPercentual" name="DespesasFixasPercentual" inputmode="decimal" value="@V(e.DespesasFixasPercentual)" placeholder="Ex.: 15" />
+                <div class="form-text" id="sugestaoDf">
+                    Contas que vêm todo mês, vendendo ou não (aluguel, internet, <strong>DAS</strong>...), em % do que você fatura.
+                    @if (s.TemSugestao)
                     {
-                        <span>Em @nomeMesSugestao você lançou <strong>R$ @Model.Sugestao.Valor.ToString("N2", pt)</strong> de despesas fixas.</span>
+                        <span>
+                            Pelos seus lançamentos: <strong>@s.Percentual!.Value.ToString("0.#", pt)%</strong>
+                            (@R(s.DespesasFixasMedia) de despesas fixas e DAS para @R(s.FaturamentoMedio) de faturamento, em média por mês).
+                        </span>
+                    }
+                    else
+                    {
+                        <span>Ainda não há faturamento lançado para sugerir um valor: informe o seu.</span>
                     }
                 </div>
             </div>
-            <div class="mb-3">
-                <label class="form-label fw-semibold" for="QuantidadeMes">Quantas unidades você vende por mês?</label>
-                <input class="form-control form-control-lg" id="QuantidadeMes" name="QuantidadeMes" inputmode="numeric" value="@e.QuantidadeMes" placeholder="Ex.: 40" />
-                <div class="form-text">Os custos fixos são divididos por essa quantidade.</div>
-            </div>
             <div class="row g-3 mb-3">
                 <div class="col-6">
-                    <label class="form-label fw-semibold" for="TaxasPercentual">Taxas sobre a venda (%)</label>
-                    <input class="form-control form-control-lg" id="TaxasPercentual" name="TaxasPercentual" inputmode="decimal" value="@V(e.TaxasPercentual)" />
-                    <div class="form-text">Ex.: maquininha de cartão, comissão.</div>
+                    <label class="form-label fw-semibold" for="DespesasVariaveisPercentual">Despesas variáveis (DV %)</label>
+                    <input class="form-control form-control-lg" id="DespesasVariaveisPercentual" name="DespesasVariaveisPercentual" inputmode="decimal" value="@V(e.DespesasVariaveisPercentual)" />
+                    <div class="form-text">Saem a cada venda: cartão, comissão, frete.</div>
                 </div>
                 <div class="col-6">
-                    <label class="form-label fw-semibold" for="LucroPercentual">Lucro que você quer ter (%)</label>
+                    <label class="form-label fw-semibold" for="LucroPercentual">Lucro desejado (ML %)</label>
                     <input class="form-control form-control-lg" id="LucroPercentual" name="LucroPercentual" inputmode="decimal" value="@V(e.LucroPercentual)" />
                     <div class="form-text">Parte do preço que fica para você.</div>
                 </div>
@@ -58,13 +61,13 @@
         @if (r is null)
         {
             <div class="card card-resumo p-3 h-100">
-                <h5>Como a conta é feita</h5>
-                <p class="text-muted mb-2">
-                    O preço precisa cobrir o custo da unidade, uma parte dos custos fixos e as taxas, e ainda
-                    deixar o lucro que você escolheu:
+                <h5>Como a conta é feita (markup divisor)</h5>
+                <p class="mb-1"><strong>Markup divisor</strong> = 1 − (DF + DV + ML) ÷ 100</p>
+                <p class="mb-1"><strong>Preço de venda</strong> = custo direto ÷ markup divisor</p>
+                <p class="mb-2"><strong>Markup multiplicador</strong> = 1 ÷ markup divisor</p>
+                <p class="text-muted small mb-0">
+                    Exemplo: custo de R$ 50,00, DF 15%, DV 10% e lucro 20% → divisor 0,55 → preço de R$ 90,91.
                 </p>
-                <p class="mb-2"><strong>Preço</strong> = (custo da unidade + custos fixos ÷ unidades) ÷ (1 − (taxas + lucro) ÷ 100)</p>
-                <p class="text-muted small mb-0">É o método do <em>mark-up</em>, muito usado por pequenos negócios.</p>
             </div>
         }
         else if (!r.Valido)
@@ -82,24 +85,29 @@
         else
         {
             <div class="card card-resumo p-3 text-center mb-3" id="precoSugerido">
-                <span class="text-muted">Preço sugerido por unidade</span>
-                <span class="display-5 fw-bold valor-receita">R$ @r.PrecoSugerido.ToString("N2", pt)</span>
+                <span class="text-muted">Preço de venda por unidade</span>
+                <span class="display-5 fw-bold valor-receita">@R(r.PrecoSugerido)</span>
+                <div class="d-flex justify-content-center gap-4 mt-2" id="markup">
+                    <span>Markup divisor <strong id="markupDivisor">@r.MarkupDivisor.ToString("0.00##", pt)</strong></span>
+                    <span>Markup multiplicador <strong id="markupMultiplicador">@r.MarkupMultiplicador.ToString("0.000", pt)</strong></span>
+                </div>
             </div>
             <div class="card card-resumo p-3">
                 <h5 class="mb-3">Para onde vai cada venda</h5>
-                <table class="table mb-0">
+                <table class="table mb-0" id="composicaoPreco">
                     <tbody>
-                        <tr><td>Custo da unidade</td><td class="text-end">R$ @((e.CustoUnitario ?? 0).ToString("N2", pt))</td></tr>
-                        <tr><td>Parte dos custos fixos</td><td class="text-end">R$ @r.CustoFixoPorUnidade.ToString("N2", pt)</td></tr>
-                        <tr><td>Taxas</td><td class="text-end">R$ @r.TaxasPorUnidade.ToString("N2", pt)</td></tr>
-                        <tr class="table-success fw-bold"><td>Seu lucro</td><td class="text-end">R$ @r.LucroPorUnidade.ToString("N2", pt)</td></tr>
+                        <tr><td>Custo direto</td><td class="text-end">@R(r.CustoPorUnidade)</td></tr>
+                        <tr><td>Despesas fixas (@V(e.DespesasFixasPercentual)%)</td><td class="text-end">@R(r.DespesasFixasPorUnidade)</td></tr>
+                        <tr><td>Despesas variáveis (@V(e.DespesasVariaveisPercentual)%)</td><td class="text-end">@R(r.DespesasVariaveisPorUnidade)</td></tr>
+                        <tr class="table-success fw-bold"><td>Seu lucro (@V(e.LucroPercentual)%)</td><td class="text-end">@R(r.LucroPorUnidade)</td></tr>
                     </tbody>
                 </table>
-                <p class="mt-3 mb-0" id="resumoMes">
-                    Vendendo <strong>@e.QuantidadeMes</strong> unidades por mês a esse preço, você fatura
-                    <strong>R$ @r.FaturamentoNoMes.ToString("N2", pt)</strong> e tem
-                    <strong>R$ @r.LucroNoMes.ToString("N2", pt)</strong> de lucro no mês.
-                </p>
+                <div class="alert alert-info small mt-3 mb-0" id="avisoMarkup">
+                    <strong>Markup não é margem de lucro.</strong> Multiplicar o custo por
+                    @r.MarkupMultiplicador.ToString("0.000", pt) não quer dizer
+                    @((r.MarkupMultiplicador - 1m).ToString("P1", pt)) de lucro: o multiplicador também paga as despesas
+                    fixas e variáveis. O seu lucro é @V(e.LucroPercentual)% do preço (@R(r.LucroPorUnidade) por unidade).
+                </div>
             </div>
         }
     </div>

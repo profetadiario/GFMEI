@@ -38,7 +38,8 @@ module.exports = defineConfig({
         salvarAreaApp(area) {
           const fs = require('fs');
           const path = require('path');
-          const destino = path.join(config.projectRoot, 'cypress', 'videos-celular', 'area-app.json');
+          // Vai para a pasta de vídeos da gravação (celular ou apresentação).
+          const destino = path.join(path.resolve(config.projectRoot, config.videosFolder), 'area-app.json');
           fs.mkdirSync(path.dirname(destino), { recursive: true });
           fs.writeFileSync(destino, JSON.stringify(area));
           return null;

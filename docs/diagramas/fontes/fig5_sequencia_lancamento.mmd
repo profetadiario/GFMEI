@@ -1,0 +1,36 @@
+sequenceDiagram
+    actor U as Microempreendedora
+    participant V as View (Create.cshtml)
+    participant C as TransacoesController
+    participant DB as AppDbContext (EF Core)
+    participant B as Banco de dados
+    U->>V: Preenche tipo, valor e categoria (ou "Pessoal")
+    V->>C: POST Create(transacao, origem, acao)
+    alt Saída pessoal (retirada)
+        Note over C: categoria definida pelo sistema
+    else Do negócio / entrada
+        C->>DB: busca a categoria da usuária com o mesmo tipo
+        DB->>B: SELECT Categoria
+        B-->>DB: categoria (ou nenhuma)
+        DB-->>C: categoria
+    end
+    alt Dados inválidos
+        C-->>V: Retorna o formulário com erros
+        V-->>U: Exibe mensagens de validação
+    else Dados válidos
+        opt Retirada pessoal
+            C->>DB: ObterOuCriarCategoriaRetiradaPessoalAsync()
+            DB->>B: SELECT / INSERT Categoria "Retirada pessoal"
+        end
+        C->>DB: Add(transacao) + SaveChangesAsync()
+        DB->>B: INSERT INTO Transacoes
+        B-->>DB: Confirmação
+        DB-->>C: OK
+        alt "Salvar e lançar outro"
+            C-->>V: Redirect para Create (formulário limpo)
+            V-->>U: "Lançamento salvo. Pode lançar o próximo."
+        else Salvar
+            C-->>V: Redirect para Index
+            V-->>U: Lista atualizada e saldo do mês
+        end
+    end

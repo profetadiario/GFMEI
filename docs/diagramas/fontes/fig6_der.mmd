@@ -1,0 +1,47 @@
+erDiagram
+    USUARIO ||--o{ CATEGORIA : possui
+    USUARIO ||--o{ TRANSACAO : registra
+    USUARIO ||--o{ META_FINANCEIRA : define
+    USUARIO ||--o{ CAPTACAO_RECURSO : capta
+    CATEGORIA ||--o{ TRANSACAO : classifica
+    USUARIO {
+        int Id PK
+        string Nome
+        string Email UK
+        string NomeNegocio
+        string SenhaHash
+        string SenhaSalt
+        datetime DataCadastro
+    }
+    CATEGORIA {
+        int Id PK
+        string Nome
+        int Tipo
+        int NaturezaDespesa "0 a 4 (4 = Retirada pessoal)"
+        int UsuarioId FK
+    }
+    TRANSACAO {
+        int Id PK
+        string Descricao
+        decimal Valor
+        int Tipo
+        datetime Data
+        int CategoriaId FK
+        int UsuarioId FK
+    }
+    META_FINANCEIRA {
+        int Id PK
+        string Descricao
+        decimal ValorMeta
+        datetime MesReferencia
+        int UsuarioId FK
+    }
+    CAPTACAO_RECURSO {
+        int Id PK
+        string InstituicaoFinanceira
+        decimal Valor
+        decimal TaxaJurosMensal
+        string Finalidade
+        datetime DataObtencao
+        int UsuarioId FK
+    }

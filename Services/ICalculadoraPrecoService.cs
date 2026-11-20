@@ -3,44 +3,48 @@ using System.ComponentModel.DataAnnotations;
 namespace GestaoFinanceiraMEI.Services;
 
 /// <summary>
-/// Calculadora de preço de venda (sem persistência: nada é gravado no
-/// banco). Usa o método do mark-up divisor, o mais ensinado ao pequeno
-/// negócio: o preço precisa cobrir o custo da unidade, a parte dos custos
-/// fixos que cabe a cada unidade, as taxas sobre a venda e ainda deixar o
-/// lucro desejado.
-///
-///   preço = (custo da unidade + custos fixos do mês ÷ unidades no mês)
-///           ÷ (1 − (taxas % + lucro %) ÷ 100)
+/// Calculadora de preço de venda pelo <b>markup divisor</b>, na forma ensinada
+/// pela orientadora no Coworking Me Conecta (decisão 8 do DECISOES_TCC):
+/// <code>
+/// markup divisor      = 1 − (DF% + DV% + ML%) ÷ 100
+/// preço de venda      = custo direto da unidade ÷ markup divisor
+/// markup multiplicador = 1 ÷ markup divisor
+/// </code>
+/// DF% = despesas fixas ÷ faturamento (para o MEI, o DAS entra aqui);
+/// DV% = despesas que variam com a venda (cartão, comissão, frete, embalagem);
+/// ML% = margem de lucro desejada. Nada é gravado.
 /// </summary>
 public interface ICalculadoraPrecoService
 {
     ResultadoCalculadoraPreco Calcular(EntradaCalculadoraPreco entrada);
 
     /// <summary>
-    /// Sugestão para o campo "custos fixos do mês": as despesas fixas
-    /// lançadas no mês anterior ao de <paramref name="hoje"/> (do DRE).
+    /// Sugere o DF% a partir dos lançamentos: (despesas fixas + DAS e impostos)
+    /// ÷ faturamento, somados nos meses com lançamento dos últimos 12 meses
+    /// (a mesma janela do relatório para o banco). Sem faturamento no período,
+    /// não há sugestão e a usuária informa o percentual.
     /// </summary>
-    Task<SugestaoCustosFixos> ObterCustosFixosSugeridosAsync(int usuarioId, DateTime hoje);
+    Task<SugestaoDespesasFixas> ObterDespesasFixasSugeridasAsync(int usuarioId, DateTime hoje);
 }
 
 public class EntradaCalculadoraPreco
 {
-    [Display(Name = "Quanto custa fazer (ou comprar) uma unidade? (R$)")]
+    [Display(Name = "Custo direto de uma unidade (R$)")]
     public decimal? CustoUnitario { get; set; }
 
-    [Display(Name = "Custos fixos do mês (R$)")]
-    public decimal? CustosFixosMes { get; set; }
+    /// <summary>DF%: despesas fixas (aluguel, internet, DAS...) em % do faturamento.</summary>
+    [Display(Name = "Despesas fixas (%)")]
+    public decimal? DespesasFixasPercentual { get; set; }
 
-    [Display(Name = "Quantas unidades você vende por mês?")]
-    public int? QuantidadeMes { get; set; }
+    /// <summary>DV%: despesas que acompanham cada venda (cartão, comissão, frete, embalagem).</summary>
+    [Display(Name = "Despesas variáveis (%)")]
+    public decimal? DespesasVariaveisPercentual { get; set; }
 
-    [Display(Name = "Taxas sobre a venda (%)")]
-    public decimal? TaxasPercentual { get; set; }
-
-    [Display(Name = "Lucro que você quer ter (%)")]
+    /// <summary>ML%: margem de lucro desejada, em % do preço.</summary>
+    [Display(Name = "Lucro desejado (%)")]
     public decimal? LucroPercentual { get; set; }
 
-    /// <summary>True quando a usuária já preencheu o formulário (há algo para calcular).</summary>
+    /// <summary>A conta só é feita depois que a usuária informa o custo.</summary>
     public bool FoiPreenchida => CustoUnitario.HasValue;
 }
 
@@ -49,18 +53,27 @@ public class ResultadoCalculadoraPreco
     public bool Valido => Erros.Count == 0;
     public List<string> Erros { get; } = new();
 
-    public decimal CustoFixoPorUnidade { get; set; }
-    public decimal CustoTotalPorUnidade { get; set; }
+    /// <summary>1 − (DF + DV + ML) ÷ 100, com 4 casas.</summary>
+    public decimal MarkupDivisor { get; set; }
+
+    /// <summary>1 ÷ markup divisor, com 3 casas.</summary>
+    public decimal MarkupMultiplicador { get; set; }
+
     public decimal PrecoSugerido { get; set; }
-    public decimal TaxasPorUnidade { get; set; }
+
+    // Para onde vai cada venda (somam exatamente o preço).
+    public decimal CustoPorUnidade { get; set; }
+    public decimal DespesasFixasPorUnidade { get; set; }
+    public decimal DespesasVariaveisPorUnidade { get; set; }
     public decimal LucroPorUnidade { get; set; }
-    public decimal FaturamentoNoMes { get; set; }
-    public decimal LucroNoMes { get; set; }
 }
 
-public class SugestaoCustosFixos
+public class SugestaoDespesasFixas
 {
-    public int Mes { get; set; }
-    public int Ano { get; set; }
-    public decimal Valor { get; set; }
+    /// <summary>Null quando não há faturamento no período para comparar.</summary>
+    public decimal? Percentual { get; set; }
+    public decimal DespesasFixasMedia { get; set; }
+    public decimal FaturamentoMedio { get; set; }
+    public int MesesConsiderados { get; set; }
+    public bool TemSugestao => Percentual.HasValue;
 }
