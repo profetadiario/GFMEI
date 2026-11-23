@@ -149,7 +149,7 @@ public class FluxoCaixaServiceTests
     }
 
     // ---------------------------------------------------------------
-    // Retirada pessoal: fora de "Despesas", dentro do saldo
+    // Lançamentos antigos de retirada pessoal (decisão 10): contam como despesa
     // ---------------------------------------------------------------
 
     private const int CategoriaRetiradaPessoal = 10;
@@ -168,7 +168,7 @@ public class FluxoCaixaServiceTests
     }
 
     [Test]
-    public async Task ObterResumoAsync_RetiradaPessoal_FicaForaDeDespesas_MasReduzOSaldo()
+    public async Task ObterResumoAsync_RetiradaAntiga_EntraNasDespesas_ESemLinhaSeparada()
     {
         AdicionarCategoriaRetiradaPessoal();
         AdicionarTransacao(UsuarioId, 1, TipoTransacao.Receita, 1000m, new DateTime(2026, 3, 10));
@@ -178,38 +178,9 @@ public class FluxoCaixaServiceTests
         var resumo = await _service.ObterResumoAsync(UsuarioId);
 
         Assert.That(resumo.TotalReceitas, Is.EqualTo(1000m));
-        Assert.That(resumo.TotalDespesas, Is.EqualTo(300m));
-        Assert.That(resumo.TotalRetiradasPessoais, Is.EqualTo(200m));
+        Assert.That(resumo.TotalDespesas, Is.EqualTo(500m));
         Assert.That(resumo.Saldo, Is.EqualTo(500m));
-    }
-
-    [Test]
-    public async Task ObterResumoAsync_RetiradaPessoal_AparecePropriaLinhaNoHistoricoMensal()
-    {
-        AdicionarCategoriaRetiradaPessoal();
-        AdicionarTransacao(UsuarioId, 2, TipoTransacao.Despesa, 300m, new DateTime(2026, 3, 15));
-        AdicionarTransacao(UsuarioId, CategoriaRetiradaPessoal, TipoTransacao.Despesa, 200m, new DateTime(2026, 3, 20));
-
-        var resumo = await _service.ObterResumoAsync(UsuarioId);
-
-        Assert.That(resumo.HistoricoMensal, Has.Count.EqualTo(1));
-        Assert.That(resumo.HistoricoMensal[0].Despesas, Is.EqualTo(300m));
-        Assert.That(resumo.HistoricoMensal[0].RetiradasPessoais, Is.EqualTo(200m));
-    }
-
-    [Test]
-    public async Task ObterResumoAsync_RetiradaPessoalDeOutraUsuaria_NaoAfetaOResumoDestaUsuaria()
-    {
-        // A categoria de retirada da outra usuária tem outro Id: um lançamento
-        // desta usuária em categoria comum continua sendo despesa do negócio.
-        AdicionarCategoriaRetiradaPessoal(OutraUsuariaId, 11);
-        AdicionarTransacao(UsuarioId, 2, TipoTransacao.Despesa, 300m, new DateTime(2026, 3, 15));
-        AdicionarTransacao(OutraUsuariaId, 11, TipoTransacao.Despesa, 999m, new DateTime(2026, 3, 15));
-
-        var resumo = await _service.ObterResumoAsync(UsuarioId);
-
-        Assert.That(resumo.TotalDespesas, Is.EqualTo(300m));
-        Assert.That(resumo.TotalRetiradasPessoais, Is.EqualTo(0m));
+        Assert.That(resumo.HistoricoMensal[0].Despesas, Is.EqualTo(500m));
     }
 
     // ---------------------------------------------------------------
@@ -271,18 +242,19 @@ public class FluxoCaixaServiceTests
     }
 
     [Test]
-    public async Task ObterPainelAsync_GastosPorCategoria_NaoIncluiRetiradaPessoal()
+    public async Task ObterPainelAsync_GastosPorCategoria_IncluiOProLabore()
     {
-        AdicionarCategoriaRetiradaPessoal();
-        AdicionarTransacao(UsuarioId, 2, TipoTransacao.Despesa, 300m, new DateTime(2026, 11, 5));
-        AdicionarTransacao(UsuarioId, CategoriaRetiradaPessoal, TipoTransacao.Despesa, 2000m, new DateTime(2026, 11, 6));
+        _context.Categorias.Add(new Categoria { Id = 12, Nome = "Pró-labore (seu salário)", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.DespesaFixa, UsuarioId = UsuarioId });
+        _context.SaveChanges();
+        AdicionarTransacao(UsuarioId, 2, TipoTransacao.Despesa, 500m, new DateTime(2026, 11, 5));
+        AdicionarTransacao(UsuarioId, 12, TipoTransacao.Despesa, 1500m, new DateTime(2026, 11, 6));
 
         var painel = await _service.ObterPainelAsync(UsuarioId, HojeFixo);
 
-        Assert.That(painel.GastosPorCategoriaDoMes, Has.Count.EqualTo(1));
-        Assert.That(painel.GastosPorCategoriaDoMes[0].Categoria, Is.EqualTo("Aluguel"));
-        Assert.That(painel.GastosPorCategoriaDoMes[0].Percentual, Is.EqualTo(100m));
-        Assert.That(painel.ResumoAnoCorrente.TotalRetiradasPessoais, Is.EqualTo(2000m));
+        Assert.That(painel.GastosPorCategoriaDoMes, Has.Count.EqualTo(2));
+        Assert.That(painel.MaiorGastoDoMes!.Categoria, Is.EqualTo("Pró-labore (seu salário)"));
+        Assert.That(painel.MaiorGastoDoMes.Percentual, Is.EqualTo(75m));
+        Assert.That(painel.ResumoAnoCorrente.TotalDespesas, Is.EqualTo(2000m));
     }
 
     [Test]

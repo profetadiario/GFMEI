@@ -59,17 +59,7 @@ public class ContaController : Controller
         await _context.SaveChangesAsync();
 
         // Categorias padrão para facilitar o primeiro uso do sistema.
-        var categoriasPadrao = new List<Categoria>
-        {
-            new() { Nome = "Vendas", Tipo = TipoTransacao.Receita, UsuarioId = usuario.Id },
-            new() { Nome = "Prestação de serviços", Tipo = TipoTransacao.Receita, UsuarioId = usuario.Id },
-            new() { Nome = "Outras receitas", Tipo = TipoTransacao.Receita, UsuarioId = usuario.Id },
-            new() { Nome = "Fornecedores/Insumos", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.CustoMercadoriaVendida, UsuarioId = usuario.Id },
-            new() { Nome = "Aluguel", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.DespesaFixa, UsuarioId = usuario.Id },
-            new() { Nome = "Impostos (DAS)", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.DeducaoOuImposto, UsuarioId = usuario.Id },
-            new() { Nome = "Transporte", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.DespesaVariavel, UsuarioId = usuario.Id },
-            new() { Nome = "Outras despesas", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.DespesaVariavel, UsuarioId = usuario.Id }
-        };
+        var categoriasPadrao = CategoriasPadrao.Criar(usuario.Id);
         _context.Categorias.AddRange(categoriasPadrao);
         await _context.SaveChangesAsync();
 
@@ -103,6 +93,8 @@ public class ContaController : Controller
             return View(model);
         }
 
+        // Quem se cadastrou antes da decisão 10 recebe o pró-labore aqui.
+        await CategoriasPadrao.GarantirProLaboreAsync(_context, usuario.Id);
         await AutenticarAsync(usuario);
 
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))

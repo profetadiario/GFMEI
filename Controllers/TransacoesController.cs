@@ -1,5 +1,6 @@
 using GestaoFinanceiraMEI.Data;
 using GestaoFinanceiraMEI.Models;
+using GestaoFinanceiraMEI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -12,10 +13,8 @@ namespace GestaoFinanceiraMEI.Controllers;
 /// </summary>
 public class TransacoesController : AutenticadoController
 {
-    public const string OrigemNegocio = "negocio";
-    public const string OrigemPessoal = "pessoal";
-    public const string NomeCategoriaRetiradaPessoal = "Retirada pessoal";
     private const string AcaoSalvarELancarOutro = "outro";
+    public const string ConfirmacaoProLabore = "sim";
 
     private readonly AppDbContext _context;
 
@@ -40,71 +39,62 @@ public class TransacoesController : AutenticadoController
         ViewData["Mes"] = mesFiltro;
         ViewData["Ano"] = anoFiltro;
         ViewData["TotalReceitas"] = transacoes.Where(t => t.Tipo == TipoTransacao.Receita).Sum(t => t.Valor);
-        // Despesas do negócio e retiradas pessoais aparecem em
-        // linhas separadas; as duas reduzem o saldo do mês.
-        ViewData["TotalDespesas"] = transacoes.Where(t => t.Tipo == TipoTransacao.Despesa && !EhRetiradaPessoal(t)).Sum(t => t.Valor);
-        ViewData["TotalRetiradas"] = transacoes.Where(EhRetiradaPessoal).Sum(t => t.Valor);
+        ViewData["TotalDespesas"] = transacoes.Where(t => t.Tipo == TipoTransacao.Despesa).Sum(t => t.Valor);
 
         return View(transacoes);
     }
 
     public async Task<IActionResult> Create()
     {
-        await CarregarCategoriasAsync();
+        await CarregarCategoriasAsync(garantirProLabore: true);
         return View(new Transacao { Data = DateTime.Today });
     }
 
     /// <summary>
-    /// Lançamento rápido. Além dos campos do lançamento, recebe:
-    /// "origem" ("negocio" é o padrão; "pessoal" marca uma saída como retirada
-    /// pessoal, que vai para uma categoria própria e fica fora do
-    /// DRE) e "acao" ("outro" salva e já abre um novo lançamento em branco).
+    /// Lançamento rápido. Toda saída é do negócio (decisão 10: não existe mais
+    /// retirada pessoal; a empreendedora se remunera pelo pró-labore). Além
+    /// dos campos do lançamento, recebe "acao" ("outro" salva e já abre um
+    /// novo lançamento em branco) e "confirmarProLabore" ("sim" quando ela já
+    /// viu o aviso de pró-labore repetido no mês e quer salvar mesmo assim).
     /// A descrição é opcional: se vier vazia, usa o nome da categoria.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Descricao,Valor,Tipo,Data,CategoriaId")] Transacao transacao, string? origem = null, string? acao = null)
+    public async Task<IActionResult> Create([Bind("Descricao,Valor,Tipo,Data,CategoriaId")] Transacao transacao, string? acao = null, string? confirmarProLabore = null)
     {
-        var retiradaPessoal = transacao.Tipo == TipoTransacao.Despesa && origem == OrigemPessoal;
+        var categoria = await _context.Categorias
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == transacao.CategoriaId && c.UsuarioId == UsuarioId && c.Tipo == transacao.Tipo);
 
-        string? nomeCategoria = null;
-        if (retiradaPessoal)
-        {
-            // A categoria é escolhida pelo sistema, então um CategoriaId vazio
-            // não é erro neste caso.
-            ModelState.Remove(nameof(transacao.CategoriaId));
-            nomeCategoria = NomeCategoriaRetiradaPessoal;
-        }
-        else
-        {
-            var categoria = await _context.Categorias
-                .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Id == transacao.CategoriaId && c.UsuarioId == UsuarioId && c.Tipo == transacao.Tipo);
+        if (categoria is null)
+            ModelState.AddModelError(nameof(transacao.CategoriaId), "Selecione uma categoria compatível com o tipo escolhido.");
 
-            if (categoria is null)
-                ModelState.AddModelError(nameof(transacao.CategoriaId), "Selecione uma categoria compatível com o tipo escolhido.");
-            else
-                nomeCategoria = categoria.Nome;
-        }
-
-        if (string.IsNullOrWhiteSpace(transacao.Descricao) && nomeCategoria is not null)
+        if (string.IsNullOrWhiteSpace(transacao.Descricao) && categoria is not null)
         {
-            transacao.Descricao = nomeCategoria;
+            transacao.Descricao = categoria.Nome;
             ModelState.Remove(nameof(transacao.Descricao));
         }
 
         if (!ModelState.IsValid)
         {
             await CarregarCategoriasAsync();
-            ViewData["Origem"] = origem;
             return View(transacao);
         }
 
-        // A categoria "Retirada pessoal" só é criada (uma vez por usuária)
-        // depois de o formulário ser validado, para não deixar categoria
-        // sobrando quando o lançamento é rejeitado.
-        if (retiradaPessoal)
-            transacao.CategoriaId = await ObterOuCriarCategoriaRetiradaPessoalAsync();
+        // Pró-labore repetido no mesmo mês: só avisa, não bloqueia.
+        if (CategoriasPadrao.EhProLabore(categoria) && confirmarProLabore != ConfirmacaoProLabore)
+        {
+            var jaLancado = await ProLaboreLancadoNoMesAsync(categoria!.Id, transacao.Data);
+            if (jaLancado > 0)
+            {
+                var pt = new System.Globalization.CultureInfo("pt-BR");
+                ViewData["AvisoProLabore"] =
+                    $"Você já lançou pró-labore em {transacao.Data.ToString("MMMM/yyyy", pt)} " +
+                    $"(R$ {jaLancado.ToString("N2", pt)}). O pró-labore é lançado uma vez, no fechamento do mês. Quer salvar outro mesmo assim?";
+                await CarregarCategoriasAsync();
+                return View(transacao);
+            }
+        }
 
         transacao.UsuarioId = UsuarioId;
         _context.Add(transacao);
@@ -185,31 +175,18 @@ public class TransacoesController : AutenticadoController
         return RedirectToAction(nameof(Index));
     }
 
-    private static bool EhRetiradaPessoal(Transacao transacao) =>
-        transacao.Tipo == TipoTransacao.Despesa
-        && transacao.Categoria?.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal;
-
-    private async Task<int> ObterOuCriarCategoriaRetiradaPessoalAsync()
+    /// <summary>Soma do pró-labore já lançado no mês/ano da data informada (zero se não houver).</summary>
+    private async Task<decimal> ProLaboreLancadoNoMesAsync(int categoriaProLaboreId, DateTime data)
     {
-        var existente = await _context.Categorias.FirstOrDefaultAsync(c =>
-            c.UsuarioId == UsuarioId
-            && c.Tipo == TipoTransacao.Despesa
-            && c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal);
-
-        if (existente is not null)
-            return existente.Id;
-
-        var nova = new Categoria
-        {
-            Nome = NomeCategoriaRetiradaPessoal,
-            Tipo = TipoTransacao.Despesa,
-            NaturezaDespesa = NaturezaDespesa.RetiradaPessoal,
-            UsuarioId = UsuarioId
-        };
-        _context.Categorias.Add(nova);
-        await _context.SaveChangesAsync();
-
-        return nova.Id;
+        var valores = await _context.Transacoes
+            .AsNoTracking()
+            .Where(t => t.UsuarioId == UsuarioId
+                        && t.CategoriaId == categoriaProLaboreId
+                        && t.Data.Month == data.Month
+                        && t.Data.Year == data.Year)
+            .Select(t => t.Valor)
+            .ToListAsync();
+        return valores.Sum();
     }
 
     private async Task<bool> CategoriaValidaAsync(int categoriaId, TipoTransacao tipo)
@@ -218,8 +195,13 @@ public class TransacoesController : AutenticadoController
             .AnyAsync(c => c.Id == categoriaId && c.UsuarioId == UsuarioId && c.Tipo == tipo);
     }
 
-    private async Task CarregarCategoriasAsync()
+    private async Task CarregarCategoriasAsync(bool garantirProLabore = false)
     {
+        // Quem já estava logada antes da decisão 10 também recebe o pró-labore.
+        var proLaboreId = garantirProLabore
+            ? await CategoriasPadrao.GarantirProLaboreAsync(_context, UsuarioId)
+            : (int?)null;
+
         var categorias = await _context.Categorias
             .Where(c => c.UsuarioId == UsuarioId)
             .OrderBy(c => c.Tipo).ThenBy(c => c.Nome)
@@ -230,5 +212,8 @@ public class TransacoesController : AutenticadoController
             Value = c.Id.ToString(),
             Text = $"{c.Nome} ({(c.Tipo == TipoTransacao.Receita ? "Receita" : "Despesa")})"
         }).ToList();
+
+        ViewBag.ProLaboreId = proLaboreId
+            ?? categorias.FirstOrDefault(CategoriasPadrao.EhProLabore)?.Id;
     }
 }

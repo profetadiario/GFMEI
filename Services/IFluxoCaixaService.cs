@@ -26,14 +26,11 @@ public class ResumoFinanceiro
 {
     public decimal TotalReceitas { get; set; }
 
-    /// <summary>Despesas do negócio. NÃO inclui as retiradas pessoais.</summary>
+    /// <summary>Despesas do negócio, com o pró-labore dentro das despesas fixas (decisão 10).</summary>
     public decimal TotalDespesas { get; set; }
 
-    /// <summary>Retiradas pessoais, mostradas em linha separada das despesas.</summary>
-    public decimal TotalRetiradasPessoais { get; set; }
-
-    /// <summary>Saldo em caixa: receitas menos despesas e menos retiradas pessoais.</summary>
-    public decimal Saldo => TotalReceitas - TotalDespesas - TotalRetiradasPessoais;
+    /// <summary>Saldo em caixa: receitas menos despesas.</summary>
+    public decimal Saldo => TotalReceitas - TotalDespesas;
 
     public List<ResumoMensal> HistoricoMensal { get; set; } = new();
 }
@@ -47,10 +44,8 @@ public class ResumoMensal
     public string Mes { get; set; } = string.Empty;
     public decimal Receitas { get; set; }
 
-    /// <summary>Despesas do negócio no mês (sem as retiradas pessoais).</summary>
+    /// <summary>Despesas do negócio no mês.</summary>
     public decimal Despesas { get; set; }
-
-    public decimal RetiradasPessoais { get; set; }
 }
 
 /// <summary>

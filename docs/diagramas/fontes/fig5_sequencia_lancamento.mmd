@@ -4,24 +4,26 @@ sequenceDiagram
     participant C as TransacoesController
     participant DB as AppDbContext (EF Core)
     participant B as Banco de dados
-    U->>V: Preenche tipo, valor e categoria (ou "Pessoal")
-    V->>C: POST Create(transacao, origem, acao)
-    alt Saída pessoal (retirada)
-        Note over C: categoria definida pelo sistema
-    else Do negócio / entrada
-        C->>DB: busca a categoria da usuária com o mesmo tipo
-        DB->>B: SELECT Categoria
-        B-->>DB: categoria (ou nenhuma)
-        DB-->>C: categoria
-    end
+    U->>V: Abre "Novo lançamento"
+    V->>C: GET Create()
+    C->>DB: GarantirProLaboreAsync() (cria a categoria uma vez)
+    DB->>B: SELECT / INSERT Categoria "Pró-labore (seu salário)"
+    C-->>V: Formulário com as categorias
+    U->>V: Preenche tipo, valor e categoria
+    Note over V: Pró-labore escolhido: mostra<br/>"lance uma vez, no fechamento do mês"
+    V->>C: POST Create(transacao, acao, confirmarProLabore)
+    C->>DB: busca a categoria da usuária com o mesmo tipo
+    DB->>B: SELECT Categoria
+    B-->>DB: categoria (ou nenhuma)
+    DB-->>C: categoria
     alt Dados inválidos
         C-->>V: Retorna o formulário com erros
         V-->>U: Exibe mensagens de validação
+    else Pró-labore já lançado no mesmo mês (sem confirmação)
+        C->>DB: soma o pró-labore do mês
+        C-->>V: Formulário com o aviso
+        V-->>U: "Você já lançou pró-labore neste mês. Salvar mesmo assim?"
     else Dados válidos
-        opt Retirada pessoal
-            C->>DB: ObterOuCriarCategoriaRetiradaPessoalAsync()
-            DB->>B: SELECT / INSERT Categoria "Retirada pessoal"
-        end
         C->>DB: Add(transacao) + SaveChangesAsync()
         DB->>B: INSERT INTO Transacoes
         B-->>DB: Confirmação

@@ -36,7 +36,7 @@ public class NaturezaDespesaTests
     [TestCase(NaturezaDespesa.DeducaoOuImposto, "Dedução ou imposto (ex.: DAS)")]
     [TestCase(NaturezaDespesa.CustoMercadoriaVendida, "Custo da mercadoria vendida (CMV)")]
     [TestCase(NaturezaDespesa.DespesaFixa, "Despesa fixa")]
-    [TestCase(NaturezaDespesa.RetiradaPessoal, "Retirada pessoal")]
+    [TestCase(NaturezaDespesa.RetiradaPessoal, "Despesa fixa")] // legado (decisão 10)
     public void CadaValor_TemODisplayNameEsperado(NaturezaDespesa valor, string nomeEsperado)
     {
         var membro = typeof(NaturezaDespesa).GetMember(valor.ToString())[0];
@@ -56,6 +56,14 @@ public class NaturezaDespesaTests
         Assert.That((int)NaturezaDespesa.DeducaoOuImposto, Is.EqualTo(1));
         Assert.That((int)NaturezaDespesa.CustoMercadoriaVendida, Is.EqualTo(2));
         Assert.That((int)NaturezaDespesa.DespesaFixa, Is.EqualTo(3));
+    }
+
+    [Test]
+    public void ParaCalculo_RetiradaAntigaViraDespesaFixa_EAsOutrasNaoMudam()
+    {
+        Assert.That(NaturezaDespesa.RetiradaPessoal.ParaCalculo(), Is.EqualTo(NaturezaDespesa.DespesaFixa));
+        foreach (var n in new[] { NaturezaDespesa.DespesaVariavel, NaturezaDespesa.DeducaoOuImposto, NaturezaDespesa.CustoMercadoriaVendida, NaturezaDespesa.DespesaFixa })
+            Assert.That(n.ParaCalculo(), Is.EqualTo(n));
     }
 
     [Test]

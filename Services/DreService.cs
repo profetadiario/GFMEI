@@ -38,7 +38,7 @@ public class DreService : IDreService
         var naturezaPorCategoria = await _context.Categorias
             .AsNoTracking()
             .Where(c => categoriaIds.Contains(c.Id))
-            .ToDictionaryAsync(c => c.Id, c => c.NaturezaDespesa);
+            .ToDictionaryAsync(c => c.Id, c => c.NaturezaDespesa.ParaCalculo());
 
         var receitaBruta = transacoesDoMes
             .Where(t => t.Tipo == TipoTransacao.Receita)

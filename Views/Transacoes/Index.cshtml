@@ -5,8 +5,7 @@
     var ano = (int)ViewData["Ano"]!;
     var totalReceitas = (decimal)ViewData["TotalReceitas"]!;
     var totalDespesas = (decimal)ViewData["TotalDespesas"]!;
-    var totalRetiradas = (decimal)ViewData["TotalRetiradas"]!;
-    var saldo = totalReceitas - totalDespesas - totalRetiradas;
+    var saldo = totalReceitas - totalDespesas;
     var nomeMes = new DateTime(ano, mes, 1).ToString("MMMM/yyyy", new System.Globalization.CultureInfo("pt-BR"));
 }
 
@@ -43,25 +42,19 @@
 </form>
 
 <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
+    <div class="col-12 col-md-4">
         <div class="card card-resumo p-3 h-100">
             <span class="text-muted small">Receitas em @nomeMes</span>
             <span class="valor valor-receita">R$ @totalReceitas.ToString("N2")</span>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-12 col-md-4">
         <div class="card card-resumo p-3 h-100">
             <span class="text-muted small">Despesas em @nomeMes</span>
             <span class="valor valor-despesa">R$ @totalDespesas.ToString("N2")</span>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card card-resumo p-3 h-100">
-            <span class="text-muted small">Retiradas pessoais em @nomeMes</span>
-            <span class="valor">R$ @totalRetiradas.ToString("N2")</span>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
+    <div class="col-12 col-md-4">
         <div class="card card-resumo p-3 h-100">
             <span class="text-muted small">Saldo do mês</span>
             <span class="valor @(saldo >= 0 ? "valor-receita" : "valor-despesa")">R$ @saldo.ToString("N2")</span>

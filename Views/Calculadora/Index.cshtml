@@ -7,52 +7,85 @@
     var pt = new System.Globalization.CultureInfo("pt-BR");
     string V(decimal? valor) => valor.HasValue ? valor.Value.ToString("0.##", pt) : string.Empty;
     string R(decimal valor) => "R$ " + valor.ToString("N2", pt);
+    string P(decimal valor) => valor.ToString("0.00", pt) + "%";
+
+    var grupos = new[]
+    {
+        (Campo: "CustosFixos", Titulo: "Custos fixos do mês", Ajuda: "Energia, água, internet, aluguel e o seu pró-labore (seu salário).", Itens: CalculadoraPrecoViewModel.ComLinhasEmBranco(e.CustosFixos)),
+        (Campo: "DespesasFixas", Titulo: "Despesas fixas do mês", Ajuda: "DAS, IPTU e outras contas fixas.", Itens: CalculadoraPrecoViewModel.ComLinhasEmBranco(e.DespesasFixas)),
+        (Campo: "DespesasVariaveis", Titulo: "Despesas variáveis do mês", Ajuda: "Gasolina, estacionamento e outros gastos que mudam de um mês para o outro.", Itens: CalculadoraPrecoViewModel.ComLinhasEmBranco(e.DespesasVariaveis))
+    };
 }
 
 <h2 class="mb-1">Calculadora de preço</h2>
 <p class="text-muted mb-4">
-    Descubra por quanto vender cada produto ou serviço para pagar as despesas e ainda ter lucro.
-    Nada aqui é gravado: é só uma conta para ajudar você a decidir.
+    Descubra por quanto vender cada produto para pagar os custos, as despesas, o seu pró-labore e ainda ter lucro.
+    É a mesma conta da planilha de markup do curso. Nada aqui é gravado.
 </p>
 
 <div class="row g-4">
     <div class="col-lg-6">
-        <form method="get" class="card card-resumo p-3">
-            <div class="mb-3">
-                <label class="form-label fw-semibold" for="CustoUnitario">Custo direto de uma unidade (R$)</label>
-                <input class="form-control form-control-lg" id="CustoUnitario" name="CustoUnitario" inputmode="decimal" value="@V(e.CustoUnitario)" placeholder="Ex.: 50,00" />
-                <div class="form-text">Material, mercadoria e embalagem de <strong>uma</strong> peça ou serviço.</div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-semibold" for="DespesasFixasPercentual">Despesas fixas (DF %)</label>
-                <input class="form-control form-control-lg" id="DespesasFixasPercentual" name="DespesasFixasPercentual" inputmode="decimal" value="@V(e.DespesasFixasPercentual)" placeholder="Ex.: 15" />
-                <div class="form-text" id="sugestaoDf">
-                    Contas que vêm todo mês, vendendo ou não (aluguel, internet, <strong>DAS</strong>...), em % do que você fatura.
-                    @if (s.TemSugestao)
-                    {
-                        <span>
-                            Pelos seus lançamentos: <strong>@s.Percentual!.Value.ToString("0.#", pt)%</strong>
-                            (@R(s.DespesasFixasMedia) de despesas fixas e DAS para @R(s.FaturamentoMedio) de faturamento, em média por mês).
-                        </span>
-                    }
-                    else
-                    {
-                        <span>Ainda não há faturamento lançado para sugerir um valor: informe o seu.</span>
-                    }
+        <form method="get" class="card card-resumo p-3" id="formCalculadora">
+            <h5>Seu tempo</h5>
+            <div class="row g-2 mb-3">
+                <div class="col-4">
+                    <label class="form-label small fw-semibold" for="DiasTrabalho">Dias de trabalho no mês</label>
+                    <input class="form-control form-control-lg" id="DiasTrabalho" name="DiasTrabalho" inputmode="decimal" value="@V(e.DiasTrabalho)" placeholder="Ex.: 24" />
+                </div>
+                <div class="col-4">
+                    <label class="form-label small fw-semibold" for="HorasPorDia">Horas por dia</label>
+                    <input class="form-control form-control-lg" id="HorasPorDia" name="HorasPorDia" inputmode="decimal" value="@V(e.HorasPorDia)" placeholder="Ex.: 8" />
+                </div>
+                <div class="col-4">
+                    <label class="form-label small fw-semibold" for="MinutosPorUnidade">Minutos para fazer uma unidade</label>
+                    <input class="form-control form-control-lg" id="MinutosPorUnidade" name="MinutosPorUnidade" inputmode="decimal" value="@V(e.MinutosPorUnidade)" placeholder="Ex.: 90" />
                 </div>
             </div>
-            <div class="row g-3 mb-3">
+
+            <div class="row g-2 mb-3">
                 <div class="col-6">
-                    <label class="form-label fw-semibold" for="DespesasVariaveisPercentual">Despesas variáveis (DV %)</label>
-                    <input class="form-control form-control-lg" id="DespesasVariaveisPercentual" name="DespesasVariaveisPercentual" inputmode="decimal" value="@V(e.DespesasVariaveisPercentual)" />
-                    <div class="form-text">Saem a cada venda: cartão, comissão, frete.</div>
+                    <label class="form-label small fw-semibold" for="CustoVariavelUnidade">Materiais de uma unidade (R$)</label>
+                    <input class="form-control form-control-lg" id="CustoVariavelUnidade" name="CustoVariavelUnidade" inputmode="decimal" value="@V(e.CustoVariavelUnidade)" placeholder="Ex.: 14,95" />
+                    <div class="form-text">Custos variáveis: o que vai em <strong>uma</strong> peça.</div>
                 </div>
                 <div class="col-6">
-                    <label class="form-label fw-semibold" for="LucroPercentual">Lucro desejado (ML %)</label>
+                    <label class="form-label small fw-semibold" for="LucroPercentual">Lucro desejado (%)</label>
                     <input class="form-control form-control-lg" id="LucroPercentual" name="LucroPercentual" inputmode="decimal" value="@V(e.LucroPercentual)" />
-                    <div class="form-text">Parte do preço que fica para você.</div>
+                    <div class="form-text">Parte do preço que fica para o negócio.</div>
                 </div>
             </div>
+
+            <div class="small text-muted mb-2" id="sugestaoValores">
+                @if (s.TemSugestao)
+                {
+                    <span>Os valores do mês abaixo vieram dos seus lançamentos (média de @s.MesesConsiderados @(s.MesesConsiderados == 1 ? "mês fechado" : "meses fechados")). Confira e ajuste.</span>
+                }
+                else
+                {
+                    <span>Ainda não há mês fechado com lançamentos para sugerir valores: informe os seus.</span>
+                }
+            </div>
+
+            @foreach (var g in grupos)
+            {
+                <fieldset class="mb-3" id="grupo@(g.Campo)">
+                    <legend class="h6 mb-1">@g.Titulo</legend>
+                    <div class="form-text mt-0 mb-2">@g.Ajuda</div>
+                    @for (var i = 0; i < g.Itens.Count; i++)
+                    {
+                        <div class="row g-2 mb-1 linha-item">
+                            <div class="col-7">
+                                <input class="form-control" id="@(g.Campo)_@(i)__Nome" name="@(g.Campo)[@i].Nome" value="@g.Itens[i].Nome" placeholder="Nome" aria-label="Nome" />
+                            </div>
+                            <div class="col-5">
+                                <input class="form-control text-end" id="@(g.Campo)_@(i)__Valor" name="@(g.Campo)[@i].Valor" inputmode="decimal" value="@V(g.Itens[i].Valor)" placeholder="R$ por mês" aria-label="Valor por mês" />
+                            </div>
+                        </div>
+                    }
+                    <button type="button" class="btn btn-sm btn-link px-0 adicionar-linha" data-campo="@g.Campo">+ outra linha</button>
+                </fieldset>
+            }
+
             <button type="submit" class="btn btn-primary btn-lg w-100">Calcular preço</button>
         </form>
     </div>
@@ -60,13 +93,18 @@
     <div class="col-lg-6">
         @if (r is null)
         {
-            <div class="card card-resumo p-3 h-100">
-                <h5>Como a conta é feita (markup divisor)</h5>
-                <p class="mb-1"><strong>Markup divisor</strong> = 1 − (DF + DV + ML) ÷ 100</p>
-                <p class="mb-1"><strong>Preço de venda</strong> = custo direto ÷ markup divisor</p>
-                <p class="mb-2"><strong>Markup multiplicador</strong> = 1 ÷ markup divisor</p>
+            <div class="card card-resumo p-3">
+                <h5>Como a conta é feita (markup)</h5>
+                <ol class="mb-2 ps-3">
+                    <li>Cada valor do mês é dividido pelo tempo de uma unidade: valor ÷ dias ÷ horas ÷ 60 × minutos.</li>
+                    <li><strong>Base</strong> = custos fixos + materiais da unidade.</li>
+                    <li><strong>DF%</strong> e <strong>DV%</strong> = despesas fixas e variáveis da unidade ÷ (base + despesas) × 100.</li>
+                    <li><strong>Markup</strong> = 100 ÷ (100 − (DF% + DV% + lucro%)).</li>
+                    <li><strong>Preço de venda</strong> = base × markup.</li>
+                </ol>
                 <p class="text-muted small mb-0">
-                    Exemplo: custo de R$ 50,00, DF 15%, DV 10% e lucro 20% → divisor 0,55 → preço de R$ 90,91.
+                    Tudo com 2 casas decimais, cortando o resto, como na planilha. Exemplo da planilha da Adriana:
+                    24 dias, 8 horas, 90 minutos, lucro de 30% → markup 1,62 → <strong>R$ 58,77</strong>.
                 </p>
             </div>
         }
@@ -87,28 +125,59 @@
             <div class="card card-resumo p-3 text-center mb-3" id="precoSugerido">
                 <span class="text-muted">Preço de venda por unidade</span>
                 <span class="display-5 fw-bold valor-receita">@R(r.PrecoSugerido)</span>
-                <div class="d-flex justify-content-center gap-4 mt-2" id="markup">
-                    <span>Markup divisor <strong id="markupDivisor">@r.MarkupDivisor.ToString("0.00##", pt)</strong></span>
-                    <span>Markup multiplicador <strong id="markupMultiplicador">@r.MarkupMultiplicador.ToString("0.000", pt)</strong></span>
+                <div class="d-flex flex-wrap justify-content-center gap-4 mt-2">
+                    <span>Markup <strong id="markup">@r.Markup.ToString("0.00", pt)</strong></span>
+                    <span>Base <strong id="basePreco">@R(r.Base)</strong></span>
                 </div>
             </div>
             <div class="card card-resumo p-3">
-                <h5 class="mb-3">Para onde vai cada venda</h5>
-                <table class="table mb-0" id="composicaoPreco">
+                <h5 class="mb-3">De onde vem o preço (por unidade)</h5>
+                <table class="table table-sm mb-0" id="composicaoPreco">
                     <tbody>
-                        <tr><td>Custo direto</td><td class="text-end">@R(r.CustoPorUnidade)</td></tr>
-                        <tr><td>Despesas fixas (@V(e.DespesasFixasPercentual)%)</td><td class="text-end">@R(r.DespesasFixasPorUnidade)</td></tr>
-                        <tr><td>Despesas variáveis (@V(e.DespesasVariaveisPercentual)%)</td><td class="text-end">@R(r.DespesasVariaveisPorUnidade)</td></tr>
-                        <tr class="table-success fw-bold"><td>Seu lucro (@V(e.LucroPercentual)%)</td><td class="text-end">@R(r.LucroPorUnidade)</td></tr>
+                        @foreach (var item in r.CustosFixos)
+                        {
+                            <tr class="text-muted small"><td class="ps-3">@item.Nome (@R(item.ValorMensal)/mês)</td><td class="text-end">@R(item.PorUnidade)</td></tr>
+                        }
+                        <tr><td>Custos fixos</td><td class="text-end">@R(r.CustosFixosUnidade)</td></tr>
+                        <tr><td>Materiais (custos variáveis)</td><td class="text-end">@R(r.CustoVariavelUnidade)</td></tr>
+                        <tr class="fw-semibold"><td>(=) Base do markup</td><td class="text-end">@R(r.Base)</td></tr>
+                        <tr><td>Despesas fixas (DAS, IPTU...)</td><td class="text-end">@R(r.DespesasFixasUnidade)</td></tr>
+                        <tr><td>Despesas variáveis (gasolina...)</td><td class="text-end">@R(r.DespesasVariaveisUnidade)</td></tr>
+                        <tr class="fw-semibold"><td>(=) Total geral</td><td class="text-end">@R(r.TotalGeral)</td></tr>
+                        <tr><td>DF% (despesas fixas ÷ total geral)</td><td class="text-end" id="dfPercentual">@P(r.DespesasFixasPercentual)</td></tr>
+                        <tr><td>DV% (despesas variáveis ÷ total geral)</td><td class="text-end" id="dvPercentual">@P(r.DespesasVariaveisPercentual)</td></tr>
+                        <tr><td>Lucro desejado</td><td class="text-end">@P(r.LucroPercentual)</td></tr>
+                        <tr class="table-success fw-bold"><td>Preço = base × markup</td><td class="text-end">@R(r.PrecoSugerido)</td></tr>
                     </tbody>
                 </table>
                 <div class="alert alert-info small mt-3 mb-0" id="avisoMarkup">
-                    <strong>Markup não é margem de lucro.</strong> Multiplicar o custo por
-                    @r.MarkupMultiplicador.ToString("0.000", pt) não quer dizer
-                    @((r.MarkupMultiplicador - 1m).ToString("P1", pt)) de lucro: o multiplicador também paga as despesas
-                    fixas e variáveis. O seu lucro é @V(e.LucroPercentual)% do preço (@R(r.LucroPorUnidade) por unidade).
+                    <strong>Markup não é margem de lucro.</strong> Multiplicar a base por @r.Markup.ToString("0.00", pt)
+                    também paga as despesas fixas e variáveis. O seu lucro é @V(r.LucroPercentual)% do preço
+                    (@R(r.LucroPorUnidade) por unidade), além do pró-labore que já está nos custos fixos.
                 </div>
             </div>
         }
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // "+ outra linha": copia a última linha do grupo com o próximo índice.
+        document.querySelectorAll('.adicionar-linha').forEach(function (botao) {
+            botao.addEventListener('click', function () {
+                var campo = botao.dataset.campo;
+                var linhas = botao.parentElement.querySelectorAll('.linha-item');
+                var nova = linhas[linhas.length - 1].cloneNode(true);
+                var indice = linhas.length;
+                nova.querySelectorAll('input').forEach(function (input) {
+                    var parte = input.name.endsWith('.Nome') ? 'Nome' : 'Valor';
+                    input.name = campo + '[' + indice + '].' + parte;
+                    input.id = campo + '_' + indice + '__' + parte;
+                    input.value = '';
+                });
+                botao.before(nova);
+                nova.querySelector('input').focus();
+            });
+        });
+    </script>
+}

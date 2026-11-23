@@ -70,7 +70,7 @@ public class RelatorioCreditoServiceTests
     }
 
     [Test]
-    public async Task ClassificaDespesasComoODre_ERetiradaFicaForaDoLucro()
+    public async Task ClassificaDespesasComoODre_EProLaboreEntraNasDespesasFixas()
     {
         var d = new DateTime(2026, 11, 5);
         Receita(4050m, d);
@@ -78,7 +78,7 @@ public class RelatorioCreditoServiceTests
         Despesa(Insumos, 980m, d);
         Despesa(Transporte, 520m, d);
         Despesa(Aluguel, 750m, d);
-        Despesa(Retirada, 500m, d);
+        Despesa(Retirada, 500m, d); // lançamento antigo: vale como pró-labore (despesa fixa)
 
         var r = await _service.ObterRelatorioAsync(UsuarioId, Hoje);
         var nov = r.Meses[^1];
@@ -86,11 +86,10 @@ public class RelatorioCreditoServiceTests
         Assert.That(nov.DeducoesEImpostos, Is.EqualTo(285m));
         Assert.That(nov.CustoMercadoriaVendida, Is.EqualTo(980m));
         Assert.That(nov.DespesasVariaveis, Is.EqualTo(520m));
-        Assert.That(nov.DespesasFixas, Is.EqualTo(750m));
-        Assert.That(nov.LucroLiquido, Is.EqualTo(1515m));
-        Assert.That(nov.RetiradasPessoais, Is.EqualTo(500m));
-        Assert.That(nov.Sobra, Is.EqualTo(1015m));
-        Assert.That(r.LucroLiquido, Is.EqualTo(1515m));
+        Assert.That(nov.DespesasFixas, Is.EqualTo(1250m));
+        Assert.That(nov.LucroLiquido, Is.EqualTo(1015m));
+        Assert.That(nov.Sobra, Is.EqualTo(1015m)); // sobra = receitas − despesas, pró-labore dentro
+        Assert.That(r.LucroLiquido, Is.EqualTo(1015m));
     }
 
     [Test]
@@ -123,7 +122,7 @@ public class RelatorioCreditoServiceTests
 
         Assert.That(r.Meses[0].SaldoFinal, Is.EqualTo(1000m)); // dez/2025
         Assert.That(r.Meses[1].SaldoFinal, Is.EqualTo(1500m)); // jan/2026
-        Assert.That(r.Meses[2].SaldoFinal, Is.EqualTo(1300m)); // fev/2026: retirada reduz o caixa
+        Assert.That(r.Meses[2].SaldoFinal, Is.EqualTo(1300m)); // fev/2026: a despesa reduz o caixa
         Assert.That(r.SaldoAtual, Is.EqualTo(1300m));
         Assert.That(r.FaturamentoTotal, Is.EqualTo(500m)); // o de 2025-06 fica fora dos 12 meses
     }

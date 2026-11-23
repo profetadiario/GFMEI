@@ -5,9 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 namespace GestaoFinanceiraMEI.Controllers;
 
 /// <summary>
-/// Calculadora de preço de venda pelo markup divisor (decisão 8). Não grava
-/// nada: o formulário é enviado por GET e o resultado é calculado na hora.
-/// O DF% já vem sugerido a partir dos lançamentos, com o DAS dentro.
+/// Calculadora de preço pelo método da planilha da Adriana (decisão 9). Não
+/// grava nada: o formulário é enviado por GET e o resultado é calculado na
+/// hora. Os valores mensais (custos fixos com o pró-labore, despesas fixas
+/// com o DAS e despesas variáveis) já vêm sugeridos a partir dos lançamentos.
 /// </summary>
 public class CalculadoraController : AutenticadoController
 {
@@ -20,7 +21,7 @@ public class CalculadoraController : AutenticadoController
 
     public async Task<IActionResult> Index([FromQuery] EntradaCalculadoraPreco entrada)
     {
-        var sugestao = await _calculadora.ObterDespesasFixasSugeridasAsync(UsuarioId, DateTime.Today);
+        var sugestao = await _calculadora.ObterValoresSugeridosAsync(UsuarioId, DateTime.Today);
 
         var modelo = new CalculadoraPrecoViewModel { Entrada = entrada, Sugestao = sugestao };
 
@@ -30,12 +31,21 @@ public class CalculadoraController : AutenticadoController
         }
         else
         {
-            // Primeira visita: valores iniciais para a usuária só ajustar.
-            entrada.DespesasFixasPercentual ??= sugestao.Percentual;
-            entrada.DespesasVariaveisPercentual ??= 0m;
+            // Primeira visita: valores mensais tirados dos lançamentos, para a
+            // usuária só conferir e completar.
+            entrada.CustosFixos = Itens(sugestao.CustosFixos);
+            entrada.DespesasFixas = Itens(sugestao.DespesasFixas);
+            entrada.DespesasVariaveis = Itens(sugestao.DespesasVariaveis);
             entrada.LucroPercentual ??= 20m;
         }
 
         return View(modelo);
     }
+
+    private static List<ItemMensal> Itens(IEnumerable<ValorSugerido> sugeridos) =>
+        sugeridos.Select(s => new ItemMensal
+        {
+            Nome = s.Nome,
+            Valor = s.MediaMensal > 0 ? s.MediaMensal : null
+        }).ToList();
 }

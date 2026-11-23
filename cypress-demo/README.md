@@ -67,11 +67,12 @@ npm run demo:gravar:celular
 **Vídeo da apresentação (desktop 1920×1080).** Cria uma conta fictícia de
 confeitaria com dois meses de histórico (`cypress/apresentacao/1-preparo.cy.js`)
 e grava o roteiro de 7 telas (`2-apresentacao.cy.js`): Painel, lançamento
-rápido, retirada pessoal, DRE, Fluxo de caixa, Calculadora (exemplo da
-orientadora, R$ 90,91) e Relatório para o banco com o Ctrl+P. Leva uns 8
+rápido, pró-labore lançado no fechamento do mês, DRE do mês fechado, Fluxo de
+caixa, Calculadora (caso da planilha da Adriana, R$ 58,77) e Relatório para o
+banco com o Ctrl+P. Leva uns 8
 minutos e gera em `docs/demo/` o vídeo completo (~2 min 20 s), a versão curta
 de reserva (< 1 min) e as capturas `capturas/01_painel.png` …
-`07_relatorio_banco.png`. Para gravar contra o site publicado, informe
+`07_relatorio_banco.png` (a 3 é `03_pro_labore.png`). Para gravar contra o site publicado, informe
 `BASE_URL`:
 
 ```bash
@@ -79,10 +80,17 @@ npm run demo:apresentacao
 BASE_URL=<endereço do site no Somee> npm run demo:apresentacao
 ```
 
+**Pró-labore (decisão 10).** `npx cypress run --spec cypress/e2e/pro-labore.cy.js`
+cria uma conta de teste e confere: sem a opção "Pessoal" no lançamento, ajuda
+"lance o pró-labore uma vez, no fechamento do mês", aviso (sem bloqueio) para o
+segundo pró-labore no mesmo mês, sem linha de retiradas no Painel e em
+Lançamentos, e o pró-labore sugerido nos custos fixos da Calculadora (5 testes).
+
 **Teste do PDF do relatório para o banco.** Depois da demo (que cria o
 cenário), entra com a conta da demo, gera o PDF como o Ctrl+P (A4, CSS de
-impressão) e confere 24 itens: valores, DRE, tabela de 12 meses, quadro dos
-bancos, ausência de menu e botões, no máximo 2 páginas e nenhum bloco
+impressão) e confere 26 itens: valores, DRE (com o pró-labore nas despesas
+fixas), tabela de 12 meses, quadro dos bancos, ausência de menu, botões e
+de linha de retiradas, no máximo 2 páginas e nenhum bloco
 sobreposto. Usa o Chrome ou o Edge instalados (`CHROME_PATH` para outro).
 Para o Somee: `BASE_URL=... PDF_EMAIL=... PDF_SENHA=... npm run teste:pdf`.
 

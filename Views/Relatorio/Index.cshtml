@@ -57,7 +57,7 @@
             <div class="card card-resumo p-3 h-100">
                 <span class="text-muted small">Sobra média por mês</span>
                 <span class="valor" id="sobraMedia">@R(rel.SobraMedia)</span>
-                <span class="text-muted small">já descontadas as retiradas pessoais</span>
+                <span class="text-muted small">já descontado o pró-labore</span>
             </div>
         </div>
         <div class="col-6 col-md-3">
@@ -112,7 +112,7 @@
             }
         }
         <p class="text-muted small mt-3 mb-0">
-            Sobra média = (receitas − despesas do negócio − retiradas pessoais) ÷ @rel.MesesConsiderados
+            Sobra média = (receitas − despesas do negócio, com o pró-labore) ÷ @rel.MesesConsiderados
             @(rel.MesesConsiderados == 1 ? "mês" : "meses") com lançamentos. As faixas de 30% e 60% são uma referência de
             prudência do sistema, não uma regra de banco: a análise final é sempre da instituição.
         </p>
@@ -130,9 +130,8 @@
                         <tr><td>(−) Custo da mercadoria vendida</td><td class="text-end">@R(rel.CustoMercadoriaVendida)</td></tr>
                         <tr class="fw-semibold"><td>(=) Lucro bruto</td><td class="text-end">@R(rel.LucroBruto)</td></tr>
                         <tr><td>(−) Despesas variáveis</td><td class="text-end">@R(rel.DespesasVariaveis)</td></tr>
-                        <tr><td>(−) Despesas fixas</td><td class="text-end">@R(rel.DespesasFixas)</td></tr>
+                        <tr><td>(−) Despesas fixas (com o pró-labore)</td><td class="text-end">@R(rel.DespesasFixas)</td></tr>
                         <tr class="table-success fw-bold"><td>(=) Lucro líquido</td><td class="text-end">@R(rel.LucroLiquido)</td></tr>
-                        <tr class="text-muted"><td>Retiradas pessoais (fora do DRE)</td><td class="text-end">@R(rel.RetiradasPessoais)</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -147,7 +146,6 @@
                                 <th>Mês</th>
                                 <th class="text-end">Receitas</th>
                                 <th class="text-end">Despesas</th>
-                                <th class="text-end">Retiradas</th>
                                 <th class="text-end">Sobra</th>
                                 <th class="text-end">Saldo final</th>
                             </tr>
@@ -159,7 +157,6 @@
                                     <td>@m.Nome</td>
                                     <td class="text-end">@m.Receitas.ToString("N2", pt)</td>
                                     <td class="text-end">@m.DespesasDoNegocio.ToString("N2", pt)</td>
-                                    <td class="text-end">@m.RetiradasPessoais.ToString("N2", pt)</td>
                                     <td class="text-end @(m.Sobra < 0 ? "text-danger" : "")">@m.Sobra.ToString("N2", pt)</td>
                                     <td class="text-end fw-semibold">@m.SaldoFinal.ToString("N2", pt)</td>
                                 </tr>

@@ -129,7 +129,7 @@ public class ContaControllerTests
     }
 
     [Test]
-    public async Task Registro_Post_DadosValidos_CriaAsOitoCategoriasPadraoComANaturezaCorreta()
+    public async Task Registro_Post_DadosValidos_CriaAsNoveCategoriasPadraoComANaturezaCorreta()
     {
         var model = RegistroValido();
 
@@ -138,10 +138,11 @@ public class ContaControllerTests
         var usuario = await _context.Usuarios.SingleAsync(u => u.Email == model.Email);
         var categorias = await _context.Categorias.Where(c => c.UsuarioId == usuario.Id).ToListAsync();
 
-        Assert.That(categorias, Has.Count.EqualTo(8));
+        Assert.That(categorias, Has.Count.EqualTo(9));
         Assert.That(categorias.Count(c => c.Tipo == TipoTransacao.Receita), Is.EqualTo(3));
         Assert.That(categorias.Single(c => c.Nome == "Fornecedores/Insumos").NaturezaDespesa, Is.EqualTo(NaturezaDespesa.CustoMercadoriaVendida));
         Assert.That(categorias.Single(c => c.Nome == "Aluguel").NaturezaDespesa, Is.EqualTo(NaturezaDespesa.DespesaFixa));
+        Assert.That(categorias.Single(c => c.Nome == "Pró-labore (seu salário)").NaturezaDespesa, Is.EqualTo(NaturezaDespesa.DespesaFixa));
         Assert.That(categorias.Single(c => c.Nome == "Impostos (DAS)").NaturezaDespesa, Is.EqualTo(NaturezaDespesa.DeducaoOuImposto));
         Assert.That(categorias.Single(c => c.Nome == "Transporte").NaturezaDespesa, Is.EqualTo(NaturezaDespesa.DespesaVariavel));
         Assert.That(categorias.Single(c => c.Nome == "Outras despesas").NaturezaDespesa, Is.EqualTo(NaturezaDespesa.DespesaVariavel));
@@ -212,6 +213,26 @@ public class ContaControllerTests
         Assert.That(resultado, Is.Not.Null);
         Assert.That(resultado!.ActionName, Is.EqualTo("Index"));
         Assert.That(resultado.ControllerName, Is.EqualTo("Dashboard"));
+    }
+
+    [Test]
+    public async Task Login_Post_CredenciaisValidas_GaranteOProLabore_SemDuplicar()
+    {
+        // Usuária cadastrada antes da decisão 10: ganha o pró-labore no login,
+        // uma vez só, mesmo entrando várias vezes.
+        var (hash, salt) = PasswordHasher.CriarHash("senhaCorreta");
+        var usuaria = new Usuario { Nome = "Maria", Email = "maria@x.com", NomeNegocio = "X", SenhaHash = hash, SenhaSalt = salt };
+        _context.Usuarios.Add(usuaria);
+        await _context.SaveChangesAsync();
+        var model = new LoginViewModel { Email = "maria@x.com", Senha = "senhaCorreta" };
+
+        await _controller.Login(model);
+        await _controller.Login(model);
+
+        var proLabore = await _context.Categorias.Where(c => c.UsuarioId == usuaria.Id && c.Nome == "Pró-labore (seu salário)").ToListAsync();
+        Assert.That(proLabore, Has.Count.EqualTo(1));
+        Assert.That(proLabore[0].NaturezaDespesa, Is.EqualTo(NaturezaDespesa.DespesaFixa));
+        Assert.That(proLabore[0].Tipo, Is.EqualTo(TipoTransacao.Despesa));
     }
 
     [Test]

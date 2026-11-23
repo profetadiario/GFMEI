@@ -30,9 +30,7 @@ public class FluxoCaixaService : IFluxoCaixaService
             .Where(t => t.UsuarioId == usuarioId)
             .ToListAsync();
 
-        var idsRetirada = await ObterIdsCategoriasRetiradaAsync(usuarioId);
-
-        return MontarResumo(todasTransacoes, idsRetirada, mes, ano);
+        return MontarResumo(todasTransacoes, mes, ano);
     }
 
     public async Task<PainelFinanceiro> ObterPainelAsync(int usuarioId, DateTime hoje)
@@ -48,20 +46,15 @@ public class FluxoCaixaService : IFluxoCaixaService
         var categorias = await _context.Categorias
             .AsNoTracking()
             .Where(c => c.UsuarioId == usuarioId)
-            .Select(c => new { c.Id, c.Nome, c.Tipo, c.NaturezaDespesa })
+            .Select(c => new { c.Id, c.Nome })
             .ToListAsync();
-
-        var idsRetirada = categorias
-            .Where(c => c.Tipo == TipoTransacao.Despesa && c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal)
-            .Select(c => c.Id)
-            .ToHashSet();
 
         var nomePorCategoria = categorias.ToDictionary(c => c.Id, c => c.Nome);
 
         var painel = new PainelFinanceiro
         {
-            ResumoAnoCorrente = MontarResumo(todasTransacoes, idsRetirada, null, hoje.Year),
-            ResumoGeral = MontarResumo(todasTransacoes, idsRetirada, null, null)
+            ResumoAnoCorrente = MontarResumo(todasTransacoes, null, hoje.Year),
+            ResumoGeral = MontarResumo(todasTransacoes, null, null)
         };
 
         // Último lançamento até hoje: um lançamento com data futura (agendado)
@@ -72,9 +65,9 @@ public class FluxoCaixaService : IFluxoCaixaService
             .ToList();
         painel.UltimoLancamento = datasAteHoje.Count == 0 ? (DateTime?)null : datasAteHoje.Max();
 
-        // Gastos do mês corrente, só do negócio (retirada pessoal fica de fora).
+        // Gastos do mês corrente por categoria (o pró-labore entra como despesa).
         var despesasDoMes = todasTransacoes
-            .Where(t => EhDespesaDoNegocio(t, idsRetirada)
+            .Where(t => t.Tipo == TipoTransacao.Despesa
                         && t.Data.Month == hoje.Month
                         && t.Data.Year == hoje.Year)
             .ToList();
@@ -104,26 +97,7 @@ public class FluxoCaixaService : IFluxoCaixaService
         return painel;
     }
 
-    private async Task<HashSet<int>> ObterIdsCategoriasRetiradaAsync(int usuarioId)
-    {
-        var ids = await _context.Categorias
-            .AsNoTracking()
-            .Where(c => c.UsuarioId == usuarioId
-                        && c.Tipo == TipoTransacao.Despesa
-                        && c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal)
-            .Select(c => c.Id)
-            .ToListAsync();
-
-        return ids.ToHashSet();
-    }
-
-    private static bool EhRetiradaPessoal(Transacao transacao, HashSet<int> idsRetirada) =>
-        transacao.Tipo == TipoTransacao.Despesa && idsRetirada.Contains(transacao.CategoriaId);
-
-    private static bool EhDespesaDoNegocio(Transacao transacao, HashSet<int> idsRetirada) =>
-        transacao.Tipo == TipoTransacao.Despesa && !idsRetirada.Contains(transacao.CategoriaId);
-
-    private static ResumoFinanceiro MontarResumo(List<Transacao> todasTransacoes, HashSet<int> idsRetirada, int? mes, int? ano)
+    private static ResumoFinanceiro MontarResumo(List<Transacao> todasTransacoes, int? mes, int? ano)
     {
         IEnumerable<Transacao> transacoesFiltradas = todasTransacoes;
 
@@ -137,8 +111,7 @@ public class FluxoCaixaService : IFluxoCaixaService
         var resumo = new ResumoFinanceiro
         {
             TotalReceitas = filtradas.Where(t => t.Tipo == TipoTransacao.Receita).Sum(t => t.Valor),
-            TotalDespesas = filtradas.Where(t => EhDespesaDoNegocio(t, idsRetirada)).Sum(t => t.Valor),
-            TotalRetiradasPessoais = filtradas.Where(t => EhRetiradaPessoal(t, idsRetirada)).Sum(t => t.Valor)
+            TotalDespesas = filtradas.Where(t => t.Tipo == TipoTransacao.Despesa).Sum(t => t.Valor)
         };
 
         resumo.HistoricoMensal = todasTransacoes
@@ -148,8 +121,7 @@ public class FluxoCaixaService : IFluxoCaixaService
             {
                 Mes = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM/yyyy"),
                 Receitas = g.Where(t => t.Tipo == TipoTransacao.Receita).Sum(t => t.Valor),
-                Despesas = g.Where(t => EhDespesaDoNegocio(t, idsRetirada)).Sum(t => t.Valor),
-                RetiradasPessoais = g.Where(t => EhRetiradaPessoal(t, idsRetirada)).Sum(t => t.Valor)
+                Despesas = g.Where(t => t.Tipo == TipoTransacao.Despesa).Sum(t => t.Valor)
             })
             .TakeLast(6)
             .ToList();

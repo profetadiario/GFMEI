@@ -33,12 +33,11 @@ public class DashboardControllerTests
             .Setup(s => s.ObterPainelAsync(UsuarioId, Hoje))
             .ReturnsAsync(new PainelFinanceiro
             {
-                ResumoAnoCorrente = new ResumoFinanceiro { TotalReceitas = 5000m, TotalDespesas = 2000m, TotalRetiradasPessoais = 400m },
+                ResumoAnoCorrente = new ResumoFinanceiro { TotalReceitas = 5000m, TotalDespesas = 2000m },
                 ResumoGeral = new ResumoFinanceiro
                 {
                     TotalReceitas = 20000m,
                     TotalDespesas = 8000m,
-                    TotalRetiradasPessoais = 1000m,
                     HistoricoMensal = new List<ResumoMensal> { new() { Mes = "jan/2026", Receitas = 100m, Despesas = 50m } }
                 },
                 GastosPorCategoriaDoMes = new List<GastoPorCategoria>
@@ -81,18 +80,8 @@ public class DashboardControllerTests
         Assert.That(modelo, Is.Not.Null);
         Assert.That(modelo!.ResumoDoMes.TotalReceitas, Is.EqualTo(5000m));
         Assert.That(modelo.ResumoDoMes.TotalDespesas, Is.EqualTo(2000m));
-        Assert.That(modelo.SaldoGeral, Is.EqualTo(11000m)); // 20000 - 8000 - 1000 (resumo geral, sem filtro)
+        Assert.That(modelo.SaldoGeral, Is.EqualTo(12000m)); // 20000 - 8000 (resumo geral, sem filtro)
         Assert.That(modelo.HistoricoMensal, Has.Count.EqualTo(1));
-    }
-
-    [Test]
-    public async Task Index_RetiradasPessoais_FicamEmLinhaSeparadaDasDespesas()
-    {
-        var resultado = await _controller.Index() as ViewResult;
-        var modelo = resultado!.Model as DashboardViewModel;
-
-        Assert.That(modelo!.ResumoDoMes.TotalDespesas, Is.EqualTo(2000m));
-        Assert.That(modelo.ResumoDoMes.TotalRetiradasPessoais, Is.EqualTo(400m));
     }
 
     [Test]

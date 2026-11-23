@@ -83,9 +83,9 @@
                         <td class="text-muted small">Taxas de cartão, embalagens, anúncios, etc.</td>
                     </tr>
                     <tr>
-                        <td>(–) Despesas Fixas</td>
+                        <td>(–) Despesas Fixas <span class="text-muted small">(com o pró-labore)</span></td>
                         <td class="text-end valor-despesa">R$ @Model.DespesasFixas.ToString("N2")</td>
-                        <td class="text-muted small">Aluguel, internet, sistema de gestão, etc.</td>
+                        <td class="text-muted small">Aluguel, internet, energia e o seu pró-labore (salário).</td>
                     </tr>
                     <tr class="@(Model.LucroLiquido >= 0 ? "table-success" : "table-danger")">
                         <td class="fw-bold">(=) LUCRO LÍQUIDO DO MÊS</td>
