@@ -2,7 +2,7 @@ namespace GestaoFinanceiraMEI.Services;
 
 /// <summary>
 /// Relatório de apoio ao crédito: resume os últimos 12 meses do negócio
-/// (faturamento, DRE resumida, retiradas pessoais e saldo em caixa) num
+/// (faturamento, DRE resumida e saldo em caixa) num
 /// formato pronto para imprimir/salvar em PDF pelo navegador e levar ao
 /// banco, e calcula o indicador de capacidade de pagamento de parcela.
 /// </summary>
@@ -22,17 +22,17 @@ public class MesRelatorio
     public decimal DeducoesEImpostos { get; set; }
     public decimal CustoMercadoriaVendida { get; set; }
     public decimal DespesasVariaveis { get; set; }
+    /// <summary>Despesas fixas, com o pró-labore dentro (decisão 10).</summary>
     public decimal DespesasFixas { get; set; }
-    public decimal RetiradasPessoais { get; set; }
 
-    /// <summary>Todas as despesas do negócio (sem as retiradas pessoais).</summary>
+    /// <summary>Todas as despesas do negócio.</summary>
     public decimal DespesasDoNegocio => DeducoesEImpostos + CustoMercadoriaVendida + DespesasVariaveis + DespesasFixas;
 
-    /// <summary>Lucro líquido do mês, como no DRE (retirada pessoal fica fora).</summary>
+    /// <summary>Lucro líquido do mês, como no DRE.</summary>
     public decimal LucroLiquido => Receitas - DespesasDoNegocio;
 
-    /// <summary>O que sobrou de verdade no caixa no mês: lucro menos retiradas pessoais (decisão 1).</summary>
-    public decimal Sobra => LucroLiquido - RetiradasPessoais;
+    /// <summary>O que sobrou no mês: receitas menos despesas do negócio, com o pró-labore dentro (decisão 10).</summary>
+    public decimal Sobra => LucroLiquido;
 
     /// <summary>Saldo em caixa acumulado no fim do mês (todo o histórico até ali).</summary>
     public decimal SaldoFinal { get; set; }
@@ -78,7 +78,6 @@ public class RelatorioCredito
     public decimal ReceitaLiquida => FaturamentoTotal - DeducoesEImpostos;
     public decimal LucroBruto => ReceitaLiquida - CustoMercadoriaVendida;
     public decimal LucroLiquido => LucroBruto - DespesasVariaveis - DespesasFixas;
-    public decimal RetiradasPessoais => Meses.Sum(m => m.RetiradasPessoais);
     public decimal SaldoAtual => Meses.Count == 0 ? 0m : Meses[^1].SaldoFinal;
 
     public decimal FaturamentoMedio => MesesConsiderados == 0 ? 0m : Math.Round(FaturamentoTotal / MesesConsiderados, 2);

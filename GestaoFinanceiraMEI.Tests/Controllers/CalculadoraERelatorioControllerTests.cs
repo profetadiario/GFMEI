@@ -19,8 +19,14 @@ public class CalculadoraControllerTests
     public void SetUp()
     {
         _calc = new Mock<ICalculadoraPrecoService>();
-        _calc.Setup(c => c.ObterDespesasFixasSugeridasAsync(UsuarioId, It.IsAny<DateTime>()))
-            .ReturnsAsync(new SugestaoDespesasFixas { Percentual = 25.6m, MesesConsiderados = 1 });
+        _calc.Setup(c => c.ObterValoresSugeridosAsync(UsuarioId, It.IsAny<DateTime>()))
+            .ReturnsAsync(new SugestaoValoresMensais
+            {
+                MesesConsiderados = 2,
+                CustosFixos = new() { new() { Nome = "Pró-labore (seu salário)", MediaMensal = 2000m }, new() { Nome = "Aluguel", MediaMensal = 300m } },
+                DespesasFixas = new() { new() { Nome = "Impostos (DAS)", MediaMensal = 76.90m } },
+                DespesasVariaveis = new() { new() { Nome = "Transporte", MediaMensal = 150m } }
+            });
         _controller = new CalculadoraController(_calc.Object).ComoUsuarioAutenticado(UsuarioId);
     }
 
@@ -28,41 +34,59 @@ public class CalculadoraControllerTests
     public void TearDown() => _controller.Dispose();
 
     [Test]
-    public async Task Index_PrimeiraVisita_PreencheDfSugerido_ENaoCalcula()
+    public async Task Index_PrimeiraVisita_PreencheOsValoresDoMesComASugestao_ENaoCalcula()
     {
         var view = await _controller.Index(new EntradaCalculadoraPreco()) as ViewResult;
         var modelo = (CalculadoraPrecoViewModel)view!.Model!;
 
         Assert.That(modelo.Resultado, Is.Null);
-        Assert.That(modelo.Entrada.DespesasFixasPercentual, Is.EqualTo(25.6m));
-        Assert.That(modelo.Entrada.DespesasVariaveisPercentual, Is.EqualTo(0m));
+        Assert.That(modelo.Entrada.CustosFixos.Select(i => (i.Nome, i.Valor)),
+            Is.EqualTo(new[] { ("Pró-labore (seu salário)", (decimal?)2000m), ("Aluguel", (decimal?)300m) }));
+        Assert.That(modelo.Entrada.DespesasFixas.Single().Valor, Is.EqualTo(76.90m));
+        Assert.That(modelo.Entrada.DespesasVariaveis.Single().Nome, Is.EqualTo("Transporte"));
         Assert.That(modelo.Entrada.LucroPercentual, Is.EqualTo(20m));
+        Assert.That(modelo.Sugestao.MesesConsiderados, Is.EqualTo(2));
         _calc.Verify(c => c.Calcular(It.IsAny<EntradaCalculadoraPreco>()), Times.Never);
     }
 
     [Test]
-    public async Task Index_PrimeiraVisitaSemHistorico_DeixaDfEmBranco()
+    public async Task Index_ProLaboreSemLancamento_ApareceComValorEmBranco()
     {
-        _calc.Setup(c => c.ObterDespesasFixasSugeridasAsync(UsuarioId, It.IsAny<DateTime>()))
-            .ReturnsAsync(new SugestaoDespesasFixas());
+        _calc.Setup(c => c.ObterValoresSugeridosAsync(UsuarioId, It.IsAny<DateTime>()))
+            .ReturnsAsync(new SugestaoValoresMensais { CustosFixos = new() { new() { Nome = "Pró-labore (seu salário)" } } });
 
         var modelo = (CalculadoraPrecoViewModel)((ViewResult)await _controller.Index(new EntradaCalculadoraPreco())).Model!;
 
-        Assert.That(modelo.Entrada.DespesasFixasPercentual, Is.Null);
+        var item = modelo.Entrada.CustosFixos.Single();
+        Assert.That(item.Nome, Is.EqualTo("Pró-labore (seu salário)"));
+        Assert.That(item.Valor, Is.Null);
     }
 
     [Test]
-    public async Task Index_ComCustoInformado_CalculaEMantemOsValoresDigitados()
+    public async Task Index_FormularioPreenchido_Calcula_ENaoSobrescreveOsValores()
     {
-        var entrada = new EntradaCalculadoraPreco { CustoUnitario = 50m, DespesasFixasPercentual = 15m, DespesasVariaveisPercentual = 10m, LucroPercentual = 20m };
-        var esperado = new ResultadoCalculadoraPreco { PrecoSugerido = 90.91m };
+        var entrada = new EntradaCalculadoraPreco
+        {
+            DiasTrabalho = 24, HorasPorDia = 8, MinutosPorUnidade = 90, CustoVariavelUnidade = 14.95m, LucroPercentual = 30m,
+            CustosFixos = new() { new() { Nome = "Energia", Valor = 150m } }
+        };
+        var esperado = new ResultadoCalculadoraPreco { PrecoSugerido = 58.77m };
         _calc.Setup(c => c.Calcular(entrada)).Returns(esperado);
 
         var view = await _controller.Index(entrada) as ViewResult;
         var modelo = (CalculadoraPrecoViewModel)view!.Model!;
 
         Assert.That(modelo.Resultado, Is.SameAs(esperado));
-        Assert.That(modelo.Entrada.DespesasFixasPercentual, Is.EqualTo(15m)); // não sobrescreve com a sugestão
+        Assert.That(modelo.Entrada.CustosFixos.Single().Nome, Is.EqualTo("Energia"));
+    }
+
+    [Test]
+    public void ComLinhasEmBranco_MantemOsItensEAcrescentaDuasLinhas()
+    {
+        var linhas = CalculadoraPrecoViewModel.ComLinhasEmBranco(new() { new() { Nome = "Energia", Valor = 150m }, new() });
+
+        Assert.That(linhas, Has.Count.EqualTo(1 + CalculadoraPrecoViewModel.LinhasEmBranco));
+        Assert.That(linhas[0].Nome, Is.EqualTo("Energia"));
     }
 }
 

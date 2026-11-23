@@ -25,25 +25,19 @@
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
+    <div class="col-12 col-md-4">
         <div class="card card-resumo p-3 h-100">
             <span class="text-muted small">Receitas no período</span>
             <span class="valor valor-receita">R$ @Model.ResumoDoMes.TotalReceitas.ToString("N2")</span>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-12 col-md-4">
         <div class="card card-resumo p-3 h-100">
             <span class="text-muted small">Despesas no período</span>
             <span class="valor valor-despesa">R$ @Model.ResumoDoMes.TotalDespesas.ToString("N2")</span>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card card-resumo p-3 h-100">
-            <span class="text-muted small">Retiradas pessoais no período</span>
-            <span class="valor">R$ @Model.ResumoDoMes.TotalRetiradasPessoais.ToString("N2")</span>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
+    <div class="col-12 col-md-4">
         <div class="card card-resumo p-3 h-100">
             <span class="text-muted small">Total captado (recursos)</span>
             <span class="valor">R$ @Model.TotalCaptado.ToString("N2")</span>
@@ -94,7 +88,7 @@
                     <canvas id="graficoGastosCategoria"></canvas>
                 </div>
                 <p class="text-muted small mt-3 mb-0">
-                    Só despesas do negócio. As retiradas pessoais ficam de fora deste gráfico.
+                    Despesas do negócio no mês, com o pró-labore (seu salário) dentro das despesas fixas.
                 </p>
             }
         </div>

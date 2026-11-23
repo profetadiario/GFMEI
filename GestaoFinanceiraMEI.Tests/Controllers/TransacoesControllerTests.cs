@@ -1,6 +1,7 @@
 using GestaoFinanceiraMEI.Controllers;
 using GestaoFinanceiraMEI.Data;
 using GestaoFinanceiraMEI.Models;
+using GestaoFinanceiraMEI.Services;
 using GestaoFinanceiraMEI.Tests.TestHelpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -95,8 +96,12 @@ public class TransacoesControllerTests
         var resultado = await _controller.Create() as ViewResult;
 
         Assert.That(resultado, Is.Not.Null);
+        // Vendas, Aluguel e o pró-labore, criado na hora para quem ainda não tinha (decisão 10).
         var categorias = _controller.ViewBag.Categorias as List<SelectListItem>;
-        Assert.That(categorias, Has.Count.EqualTo(2));
+        Assert.That(categorias, Has.Count.EqualTo(3));
+        var proLabore = await _context.Categorias.SingleAsync(c => c.Nome == CategoriasPadrao.NomeProLabore);
+        Assert.That(proLabore.NaturezaDespesa, Is.EqualTo(NaturezaDespesa.DespesaFixa));
+        Assert.That((int?)_controller.ViewBag.ProLaboreId, Is.EqualTo(proLabore.Id));
         Assert.That((resultado!.Model as Transacao)!.Data, Is.EqualTo(DateTime.Today));
     }
 
@@ -295,87 +300,95 @@ public class TransacoesControllerTests
         Assert.That(await _context.Transacoes.CountAsync(), Is.EqualTo(1));
     }
 
+    private async Task<int> CriarProLaboreAsync() =>
+        await CategoriasPadrao.GarantirProLaboreAsync(_context, UsuarioId);
+
     [Test]
-    public async Task Create_Post_OrigemPessoal_EmDespesa_CriaCategoriaRetiradaPessoal_ELancaNela()
+    public async Task Create_Get_ProLabore_EhIdempotente_NaoDuplicaACategoria()
     {
-        // Sem CategoriaId e sem descrição: o sistema escolhe a categoria.
-        var transacao = new Transacao { Descricao = "", Valor = 500m, Tipo = TipoTransacao.Despesa, Data = DateTime.Today, CategoriaId = 0 };
-        _controller.ModelState.AddModelError("Descricao", "Informe uma descrição.");
-        _controller.ModelState.AddModelError("CategoriaId", "Selecione uma categoria.");
+        await _controller.Create();
+        await _controller.Create();
 
-        var resultado = await _controller.Create(transacao, origem: "pessoal") as RedirectToActionResult;
-
-        Assert.That(resultado, Is.Not.Null);
-        var categoria = await _context.Categorias.SingleAsync(c => c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal);
-        Assert.That(categoria.UsuarioId, Is.EqualTo(UsuarioId));
-        Assert.That(categoria.Tipo, Is.EqualTo(TipoTransacao.Despesa));
-        Assert.That(categoria.Nome, Is.EqualTo(TransacoesController.NomeCategoriaRetiradaPessoal));
-
-        var salva = await _context.Transacoes.SingleAsync();
-        Assert.That(salva.CategoriaId, Is.EqualTo(categoria.Id));
-        Assert.That(salva.UsuarioId, Is.EqualTo(UsuarioId));
-        Assert.That(salva.Descricao, Is.EqualTo(TransacoesController.NomeCategoriaRetiradaPessoal));
+        Assert.That(await _context.Categorias.CountAsync(c => c.Nome == CategoriasPadrao.NomeProLabore), Is.EqualTo(1));
     }
 
     [Test]
-    public async Task Create_Post_OrigemPessoal_ReaproveitaACategoriaRetiradaPessoalJaExistente()
+    public async Task Create_Get_NaoUsaOProLaboreDeOutraUsuaria()
     {
-        var primeira = new Transacao { Descricao = "", Valor = 100m, Tipo = TipoTransacao.Despesa, Data = DateTime.Today };
-        var segunda = new Transacao { Descricao = "", Valor = 200m, Tipo = TipoTransacao.Despesa, Data = DateTime.Today };
+        _context.Categorias.Add(new Categoria { Id = 600, Nome = CategoriasPadrao.NomeProLabore, Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.DespesaFixa, UsuarioId = 777 });
+        await _context.SaveChangesAsync();
 
-        await _controller.Create(primeira, origem: "pessoal");
-        await _controller.Create(segunda, origem: "pessoal");
+        await _controller.Create();
 
-        Assert.That(await _context.Categorias.CountAsync(c => c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal), Is.EqualTo(1));
+        Assert.That((int?)_controller.ViewBag.ProLaboreId, Is.Not.EqualTo(600));
+        Assert.That(await _context.Categorias.CountAsync(c => c.Nome == CategoriasPadrao.NomeProLabore && c.UsuarioId == UsuarioId), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Create_Post_ProLabore_PrimeiroDoMes_SalvaSemAviso()
+    {
+        var proLaboreId = await CriarProLaboreAsync();
+        var transacao = new Transacao { Descricao = "", Valor = 2000m, Tipo = TipoTransacao.Despesa, Data = new DateTime(2026, 10, 31), CategoriaId = proLaboreId };
+
+        var resultado = await _controller.Create(transacao) as RedirectToActionResult;
+
+        Assert.That(resultado, Is.Not.Null);
+        var salva = await _context.Transacoes.SingleAsync();
+        Assert.That(salva.Descricao, Is.EqualTo(CategoriasPadrao.NomeProLabore));
+        Assert.That(_controller.ViewData["AvisoProLabore"], Is.Null);
+    }
+
+    [Test]
+    public async Task Create_Post_ProLaboreRepetidoNoMes_Avisa_ENaoSalva()
+    {
+        var proLaboreId = await CriarProLaboreAsync();
+        AdicionarTransacao(proLaboreId, TipoTransacao.Despesa, 2000m, new DateTime(2026, 10, 31));
+        var outro = new Transacao { Descricao = "", Valor = 2000m, Tipo = TipoTransacao.Despesa, Data = new DateTime(2026, 10, 15), CategoriaId = proLaboreId };
+
+        var resultado = await _controller.Create(outro) as ViewResult;
+
+        Assert.That(resultado, Is.Not.Null);
+        Assert.That((string?)_controller.ViewData["AvisoProLabore"], Does.Contain("já lançou pró-labore em outubro/2026").And.Contain("2.000,00"));
+        Assert.That(await _context.Transacoes.CountAsync(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Create_Post_ProLaboreRepetido_ConfirmadoPelaUsuaria_Salva()
+    {
+        var proLaboreId = await CriarProLaboreAsync();
+        AdicionarTransacao(proLaboreId, TipoTransacao.Despesa, 2000m, new DateTime(2026, 10, 31));
+        var outro = new Transacao { Descricao = "Complemento", Valor = 300m, Tipo = TipoTransacao.Despesa, Data = new DateTime(2026, 10, 31), CategoriaId = proLaboreId };
+
+        var resultado = await _controller.Create(outro, confirmarProLabore: TransacoesController.ConfirmacaoProLabore) as RedirectToActionResult;
+
+        Assert.That(resultado, Is.Not.Null);
         Assert.That(await _context.Transacoes.CountAsync(), Is.EqualTo(2));
     }
 
     [Test]
-    public async Task Create_Post_OrigemPessoal_NaoUsaACategoriaRetiradaDeOutraUsuaria()
+    public async Task Create_Post_ProLaboreEmOutroMes_NaoAvisa()
     {
-        _context.Categorias.Add(new Categoria
-        {
-            Id = 600,
-            Nome = "Retirada pessoal",
-            Tipo = TipoTransacao.Despesa,
-            NaturezaDespesa = NaturezaDespesa.RetiradaPessoal,
-            UsuarioId = 777
-        });
-        await _context.SaveChangesAsync();
+        var proLaboreId = await CriarProLaboreAsync();
+        AdicionarTransacao(proLaboreId, TipoTransacao.Despesa, 2000m, new DateTime(2026, 9, 30));
+        var outubro = new Transacao { Descricao = "", Valor = 2000m, Tipo = TipoTransacao.Despesa, Data = new DateTime(2026, 10, 31), CategoriaId = proLaboreId };
 
-        var transacao = new Transacao { Descricao = "", Valor = 100m, Tipo = TipoTransacao.Despesa, Data = DateTime.Today };
-
-        await _controller.Create(transacao, origem: "pessoal");
-
-        var salva = await _context.Transacoes.SingleAsync();
-        Assert.That(salva.CategoriaId, Is.Not.EqualTo(600));
-        Assert.That(await _context.Categorias.CountAsync(c => c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal && c.UsuarioId == UsuarioId), Is.EqualTo(1));
-    }
-
-    [Test]
-    public async Task Create_Post_OrigemPessoal_EmReceita_EhIgnorada_ELancaNaCategoriaEscolhida()
-    {
-        var transacao = new Transacao { Descricao = "Venda", Valor = 100m, Tipo = TipoTransacao.Receita, Data = DateTime.Today, CategoriaId = _categoriaReceitaId };
-
-        await _controller.Create(transacao, origem: "pessoal");
-
-        var salva = await _context.Transacoes.SingleAsync();
-        Assert.That(salva.CategoriaId, Is.EqualTo(_categoriaReceitaId));
-        Assert.That(await _context.Categorias.CountAsync(c => c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal), Is.EqualTo(0));
-    }
-
-    [Test]
-    public async Task Create_Post_OrigemPessoal_ComFormularioInvalido_NaoCriaACategoria_EMantemAOrigemNaTela()
-    {
-        var transacao = new Transacao { Descricao = "", Valor = 0m, Tipo = TipoTransacao.Despesa, Data = DateTime.Today };
-        _controller.ModelState.AddModelError("Valor", "O valor deve ser maior que zero.");
-
-        var resultado = await _controller.Create(transacao, origem: "pessoal") as ViewResult;
+        var resultado = await _controller.Create(outubro) as RedirectToActionResult;
 
         Assert.That(resultado, Is.Not.Null);
-        Assert.That(_controller.ViewData["Origem"], Is.EqualTo("pessoal"));
-        Assert.That(await _context.Categorias.CountAsync(c => c.NaturezaDespesa == NaturezaDespesa.RetiradaPessoal), Is.EqualTo(0));
-        Assert.That(await _context.Transacoes.CountAsync(), Is.EqualTo(0));
+        Assert.That(await _context.Transacoes.CountAsync(), Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task Create_Post_OutraDespesaNoMesDoProLabore_NaoAvisa()
+    {
+        var proLaboreId = await CriarProLaboreAsync();
+        AdicionarTransacao(proLaboreId, TipoTransacao.Despesa, 2000m, new DateTime(2026, 10, 31));
+        var aluguel = new Transacao { Descricao = "", Valor = 300m, Tipo = TipoTransacao.Despesa, Data = new DateTime(2026, 10, 31), CategoriaId = _categoriaDespesaId };
+
+        var resultado = await _controller.Create(aluguel) as RedirectToActionResult;
+
+        Assert.That(resultado, Is.Not.Null);
+        Assert.That(_controller.ViewData["AvisoProLabore"], Is.Null);
     }
 
     [Test]
@@ -392,35 +405,23 @@ public class TransacoesControllerTests
     }
 
     [Test]
-    public async Task Index_SeparaRetiradasPessoaisDasDespesas_ENoSaldoDoMesOsDoisReduzem()
+    public async Task Index_ProLaboreELancamentoAntigoDeRetirada_EntramNasDespesas()
     {
-        var retirada = new Categoria
-        {
-            Nome = "Retirada pessoal",
-            Tipo = TipoTransacao.Despesa,
-            NaturezaDespesa = NaturezaDespesa.RetiradaPessoal,
-            UsuarioId = UsuarioId
-        };
-        _context.Categorias.Add(retirada);
+        var proLaboreId = await CriarProLaboreAsync();
+        var antiga = new Categoria { Nome = "Retirada pessoal", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.RetiradaPessoal, UsuarioId = UsuarioId };
+        _context.Categorias.Add(antiga);
         _context.SaveChanges();
 
         var hoje = DateTime.Today;
         AdicionarTransacao(_categoriaReceitaId, TipoTransacao.Receita, 1000m, hoje);
         AdicionarTransacao(_categoriaDespesaId, TipoTransacao.Despesa, 300m, hoje);
-        AdicionarTransacao(retirada.Id, TipoTransacao.Despesa, 200m, hoje);
+        AdicionarTransacao(proLaboreId, TipoTransacao.Despesa, 200m, hoje);
+        AdicionarTransacao(antiga.Id, TipoTransacao.Despesa, 50m, hoje);
 
         await _controller.Index(null, null);
 
         Assert.That(_controller.ViewData["TotalReceitas"], Is.EqualTo(1000m));
-        Assert.That(_controller.ViewData["TotalDespesas"], Is.EqualTo(300m));
-        Assert.That(_controller.ViewData["TotalRetiradas"], Is.EqualTo(200m));
-    }
-
-    [Test]
-    public async Task Index_SemRetiradas_TotalRetiradasEhZero()
-    {
-        await _controller.Index(null, null);
-
-        Assert.That(_controller.ViewData["TotalRetiradas"], Is.EqualTo(0m));
+        Assert.That(_controller.ViewData["TotalDespesas"], Is.EqualTo(550m));
+        Assert.That(_controller.ViewData.ContainsKey("TotalRetiradas"), Is.False);
     }
 }

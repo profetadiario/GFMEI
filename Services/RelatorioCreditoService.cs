@@ -34,7 +34,7 @@ public class RelatorioCreditoService : IRelatorioCreditoService
         var naturezaPorCategoria = await _context.Categorias
             .AsNoTracking()
             .Where(c => c.UsuarioId == usuarioId)
-            .ToDictionaryAsync(c => c.Id, c => c.NaturezaDespesa);
+            .ToDictionaryAsync(c => c.Id, c => c.NaturezaDespesa.ParaCalculo());
 
         var captacoes = await _context.Captacoes
             .AsNoTracking()
@@ -72,7 +72,6 @@ public class RelatorioCreditoService : IRelatorioCreditoService
                 CustoMercadoriaVendida = Soma(NaturezaDespesa.CustoMercadoriaVendida),
                 DespesasVariaveis = Soma(NaturezaDespesa.DespesaVariavel),
                 DespesasFixas = Soma(NaturezaDespesa.DespesaFixa),
-                RetiradasPessoais = Soma(NaturezaDespesa.RetiradaPessoal),
                 TeveMovimento = doMes.Count > 0
             };
 

@@ -3,35 +3,47 @@ classDiagram
     class ICalculadoraPrecoService {
         <<interface>>
         +Calcular(entrada) ResultadoCalculadoraPreco
-        +ObterDespesasFixasSugeridasAsync(usuarioId, hoje)
+        +ObterValoresSugeridosAsync(usuarioId, hoje)
     }
     class CalculadoraPrecoService {
-        -IRelatorioCreditoService _relatorio
+        -AppDbContext _context
         +Calcular(entrada) ResultadoCalculadoraPreco
-        +ObterDespesasFixasSugeridasAsync(usuarioId, hoje)
+        +ObterValoresSugeridosAsync(usuarioId, hoje)
+        +Truncar(valor)$ decimal
     }
     class EntradaCalculadoraPreco {
-        +decimal CustoUnitario
-        +decimal DespesasFixasPercentual
-        +decimal DespesasVariaveisPercentual
+        +decimal DiasTrabalho
+        +decimal HorasPorDia
+        +decimal MinutosPorUnidade
+        +decimal CustoVariavelUnidade
         +decimal LucroPercentual
+        +ItemMensal[] CustosFixos
+        +ItemMensal[] DespesasFixas
+        +ItemMensal[] DespesasVariaveis
+    }
+    class ItemMensal {
+        +string Nome
+        +decimal Valor
     }
     class ResultadoCalculadoraPreco {
         +bool Valido
         +string[] Erros
-        +decimal MarkupDivisor
-        +decimal MarkupMultiplicador
+        +decimal CustosFixosUnidade
+        +decimal CustoVariavelUnidade
+        +decimal Base
+        +decimal DespesasFixasUnidade
+        +decimal DespesasVariaveisUnidade
+        +decimal TotalGeral
+        +decimal DespesasFixasPercentual
+        +decimal DespesasVariaveisPercentual
+        +decimal Markup
         +decimal PrecoSugerido
-        +decimal CustoPorUnidade
-        +decimal DespesasFixasPorUnidade
-        +decimal DespesasVariaveisPorUnidade
-        +decimal LucroPorUnidade
     }
-    class SugestaoDespesasFixas {
-        +decimal Percentual
-        +decimal DespesasFixasMedia
-        +decimal FaturamentoMedio
+    class SugestaoValoresMensais {
         +int MesesConsiderados
+        +ValorSugerido[] CustosFixos
+        +ValorSugerido[] DespesasFixas
+        +ValorSugerido[] DespesasVariaveis
     }
     class IRelatorioCreditoService {
         <<interface>>
@@ -58,7 +70,6 @@ classDiagram
         +int Ano
         +decimal Receitas
         +decimal DespesasDoNegocio
-        +decimal RetiradasPessoais
         +decimal LucroLiquido
         +decimal Sobra
         +decimal SaldoFinal
@@ -73,8 +84,8 @@ classDiagram
     ICalculadoraPrecoService <|.. CalculadoraPrecoService : implementa
     CalculadoraPrecoService ..> EntradaCalculadoraPreco : recebe
     CalculadoraPrecoService ..> ResultadoCalculadoraPreco : produz
-    CalculadoraPrecoService ..> SugestaoDespesasFixas : sugere DF%
-    CalculadoraPrecoService --> IRelatorioCreditoService : usa
+    EntradaCalculadoraPreco "1" *-- "*" ItemMensal
+    CalculadoraPrecoService ..> SugestaoValoresMensais : sugere (pró-labore nos custos fixos)
     IRelatorioCreditoService <|.. RelatorioCreditoService : implementa
     RelatorioCreditoService ..> RelatorioCredito : produz
     RelatorioCredito "1" *-- "12" MesRelatorio

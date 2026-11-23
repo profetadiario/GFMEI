@@ -147,6 +147,49 @@ Cypress.Commands.add('criarTransacao', (transacao) => {
 });
 
 /**
+ * Preenche um grupo de valores do mês da Calculadora de preço (CustosFixos,
+ * DespesasFixas ou DespesasVariaveis), linha a linha, clicando em
+ * "+ outra linha" quando faltam linhas no formulário.
+ */
+Cypress.Commands.add('preencherValoresDoMes', (campo, itens) => {
+  itens.forEach((item, i) => {
+    cy.get('body').then(($body) => {
+      if ($body.find(`#${campo}_${i}__Valor`).length === 0) {
+        cy.get(`#grupo${campo} .adicionar-linha`).click();
+      }
+    });
+    cy.get(`#${campo}_${i}__Nome`).clear().type(item.nome);
+    cy.get(`#${campo}_${i}__Valor`).clear().type(item.valor);
+  });
+});
+
+/** Caso da planilha da Adriana (decisão 9): R$ 58,77 com lucro de 30%. */
+Cypress.Commands.add('preencherCasoAdriana', ({ comValoresDoMes = true } = {}) => {
+  cy.get('#DiasTrabalho').clear().type('24');
+  cy.get('#HorasPorDia').clear().type('8');
+  cy.get('#MinutosPorUnidade').clear().type('90');
+  cy.get('#CustoVariavelUnidade').clear().type('14,95');
+  cy.get('#LucroPercentual').clear().type('30');
+  if (comValoresDoMes) {
+    cy.preencherValoresDoMes('CustosFixos', [
+      { nome: 'Pró-labore (seu salário)', valor: '2000' },
+      { nome: 'Energia', valor: '150' },
+      { nome: 'Água', valor: '32' },
+      { nome: 'Internet', valor: '250' },
+      { nome: 'Aluguel', valor: '300' },
+    ]);
+    cy.preencherValoresDoMes('DespesasFixas', [
+      { nome: 'DAS', valor: '76,90' },
+      { nome: 'IPTU', valor: '168' },
+    ]);
+    cy.preencherValoresDoMes('DespesasVariaveis', [
+      { nome: 'Gasolina', valor: '150' },
+      { nome: 'Estacionamento', valor: '40' },
+    ]);
+  }
+});
+
+/**
  * Define uma meta financeira em Metas/Create. #MesReferencia já vem
  * preenchido com o 1º dia do mês atual; quando `mesReferencia` é informado
  * (string "yyyy-MM-dd"), o valor é trocado via JS (cy.invoke('val', ...) +

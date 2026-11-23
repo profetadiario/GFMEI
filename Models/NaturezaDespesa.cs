@@ -29,12 +29,24 @@ public enum NaturezaDespesa
     DespesaFixa = 3,
 
     /// <summary>
-    /// Saída de dinheiro do negócio para uso pessoal da empreendedora
-    /// (retirada de lucros). Não é despesa do negócio: fica fora do DRE e
-    /// aparece separada de "Despesas" no Painel e em Lançamentos, mas continua
-    /// reduzindo o saldo em caixa. Como o enum é gravado como número inteiro,
-    /// acrescentar este valor NÃO exige nenhuma mudança no banco de dados.
+    /// LEGADO (v1.4–v1.5). Antiga "retirada pessoal", que saiu do sistema
+    /// pela decisão 10 (23/11/2026): a empreendedora se remunera só pelo
+    /// pró-labore, lançado no fechamento do mês como despesa fixa. O valor
+    /// continua no enum apenas para não quebrar lançamentos já gravados; não
+    /// aparece em nenhuma tela e, nos cálculos, conta como despesa fixa (ver
+    /// <see cref="NaturezaDespesaExtensions.ParaCalculo"/>).
     /// </summary>
-    [Display(Name = "Retirada pessoal")]
+    [Display(Name = "Despesa fixa")]
     RetiradaPessoal = 4
+}
+
+public static class NaturezaDespesaExtensions
+{
+    /// <summary>
+    /// Natureza usada nos cálculos (DRE, relatório, calculadora). Lançamentos
+    /// antigos de retirada pessoal contam como despesa fixa, igual ao
+    /// pró-labore, até serem convertidos.
+    /// </summary>
+    public static NaturezaDespesa ParaCalculo(this NaturezaDespesa natureza) =>
+        natureza == NaturezaDespesa.RetiradaPessoal ? NaturezaDespesa.DespesaFixa : natureza;
 }

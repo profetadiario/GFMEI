@@ -1,7 +1,8 @@
 @model Transacao
 @{
     ViewData["Title"] = "Novo lançamento";
-    var origemAtual = ViewData["Origem"] as string ?? "negocio";
+    var proLaboreId = ViewBag.ProLaboreId as int?;
+    var avisoProLabore = ViewData["AvisoProLabore"] as string;
 }
 
 <h2 class="mb-3">Novo lançamento</h2>
@@ -9,6 +10,15 @@
 <div class="card card-resumo p-3 p-md-4 col-lg-6">
     <form asp-action="Create" method="post">
         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        @if (avisoProLabore is not null)
+        {
+            <div class="alert alert-warning" id="avisoProLabore" role="alert">
+                <p class="mb-2">@avisoProLabore</p>
+                <input type="hidden" name="confirmarProLabore" value="sim" />
+                <span class="small">Para salvar mesmo assim, clique em <strong>Salvar</strong> de novo. Para desistir, clique em <strong>Cancelar</strong>.</span>
+            </div>
+        }
 
         <div class="mb-3">
             <label asp-for="Tipo" class="form-label">Entrada ou saída?</label>
@@ -28,30 +38,7 @@
                 <option value="">Selecione...</option>
             </select>
             <span asp-validation-for="CategoriaId" class="text-danger"></span>
-        </div>
-
-        <div class="mb-3" id="blocoOrigem" style="display:none">
-            <label class="form-label d-block">De onde saiu o dinheiro?</label>
-            <div class="btn-group w-100" role="group" aria-label="Origem da saída">
-                @if (origemAtual == "pessoal")
-                {
-                    <input type="radio" class="btn-check" name="origem" id="origemNegocio" value="negocio" autocomplete="off" />
-                    <label class="btn btn-outline-primary" for="origemNegocio">Do negócio</label>
-                    <input type="radio" class="btn-check" name="origem" id="origemPessoal" value="pessoal" autocomplete="off" checked />
-                    <label class="btn btn-outline-primary" for="origemPessoal">Pessoal</label>
-                }
-                else
-                {
-                    <input type="radio" class="btn-check" name="origem" id="origemNegocio" value="negocio" autocomplete="off" checked />
-                    <label class="btn btn-outline-primary" for="origemNegocio">Do negócio</label>
-                    <input type="radio" class="btn-check" name="origem" id="origemPessoal" value="pessoal" autocomplete="off" />
-                    <label class="btn btn-outline-primary" for="origemPessoal">Pessoal</label>
-                }
-            </div>
-            <div class="form-text">
-                "Pessoal" é o dinheiro que você tirou do negócio para uso próprio. Ele não entra como despesa
-                no resultado do mês (DRE), mas diminui o saldo em caixa.
-            </div>
+            <div class="form-text fw-semibold" id="ajudaProLabore" style="display:none">@GestaoFinanceiraMEI.Services.CategoriasPadrao.AjudaProLabore</div>
         </div>
 
         <div class="mb-3">
@@ -80,10 +67,8 @@
         (function () {
             var selectTipo = document.getElementById('Tipo');
             var selectCategoria = document.getElementById('CategoriaId');
-            var blocoOrigem = document.getElementById('blocoOrigem');
-            var blocoCategoria = document.getElementById('blocoCategoria');
-            var radioNegocio = document.getElementById('origemNegocio');
-            var radioPessoal = document.getElementById('origemPessoal');
+            var ajudaProLabore = document.getElementById('ajudaProLabore');
+            var proLaboreId = '@(proLaboreId?.ToString() ?? "")';
 
             // Guarda todas as categorias para mostrar só as do tipo escolhido
             // (o texto de cada uma termina em "(Receita)" ou "(Despesa)").
@@ -108,17 +93,17 @@
                 });
             }
 
+            function mostrarAjudaProLabore() {
+                ajudaProLabore.style.display = proLaboreId !== '' && selectCategoria.value === proLaboreId ? '' : 'none';
+            }
+
             function atualizarTela(valorCategoria) {
-                var despesa = selectTipo.value === '2';
-                var pessoal = despesa && radioPessoal.checked;
-                blocoOrigem.style.display = despesa ? '' : 'none';
-                blocoCategoria.style.display = pessoal ? 'none' : '';
                 filtrarCategorias(valorCategoria);
+                mostrarAjudaProLabore();
             }
 
             selectTipo.addEventListener('change', function () { atualizarTela(''); });
-            radioNegocio.addEventListener('change', function () { atualizarTela(selectCategoria.value); });
-            radioPessoal.addEventListener('change', function () { atualizarTela(selectCategoria.value); });
+            selectCategoria.addEventListener('change', mostrarAjudaProLabore);
 
             atualizarTela(selectCategoria.value);
         })();

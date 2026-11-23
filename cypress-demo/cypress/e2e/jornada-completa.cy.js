@@ -31,7 +31,7 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
     senha: 'SenhaForte@123',
   };
 
-  // Categorias próprias, além das 8 padrão já criadas no cadastro.
+  // Categorias próprias, além das 9 padrão já criadas no cadastro (com o pró-labore).
   const novasCategorias = [
     { nome: 'Internet', tipo: 'Despesa', natureza: 'Despesa fixa' },
     { nome: 'Marketing', tipo: 'Despesa', natureza: 'Despesa variável' },
@@ -106,7 +106,7 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
     cy.location('pathname').should('eq', '/Dashboard');
     cy.contains('h2', `Olá, ${usuaria.nomeNegocio}`).should('be.visible');
 
-    // O cadastro já cria 8 categorias padrão (Vendas, Aluguel, Impostos...)
+    // O cadastro já cria 9 categorias padrão (Vendas, Aluguel, Pró-labore, Impostos...)
     // para facilitar o primeiro uso — é o que os próximos passos usam.
     cy.contains('.nav-link', 'Painel').should('exist');
     cy.olharTela();
@@ -116,16 +116,17 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
     cy.loginComo(usuaria);
     cy.visit('/Categorias');
 
-    cy.get('table tbody tr').should('have.length', 8);
+    cy.get('table tbody tr').should('have.length', 9);
     cy.contains('table tbody tr', 'Vendas').should('contain', 'Receita');
     cy.contains('table tbody tr', 'Aluguel').should('contain', 'Despesa fixa');
+    cy.contains('table tbody tr', 'Pró-labore (seu salário)').should('contain', 'Despesa fixa');
 
     novasCategorias.forEach((categoria, indice) => {
       cy.contains('a', '+ Nova categoria').click();
       cy.location('pathname').should('eq', '/Categorias/Create');
       cy.criarCategoria(categoria);
 
-      cy.get('table tbody tr').should('have.length', 8 + indice + 1);
+      cy.get('table tbody tr').should('have.length', 9 + indice + 1);
       cy.contains('table tbody tr', categoria.nome).should('contain', categoria.natureza);
     });
     cy.olharTela();
@@ -246,31 +247,29 @@ describe('Jornada completa de uso do Controle Financeiro MEI', () => {
     cy.olharTela();
   });
 
-  it('Passo 11 — Calculadora de preço pelo markup divisor (exemplo da orientadora)', () => {
+  it('Passo 11 — Calculadora de preço pelo markup da planilha (caso da Adriana)', () => {
     cy.loginComo(usuaria);
     cy.visit('/Dashboard');
     cy.irPeloMenu('Calculadora de preço');
     cy.location('pathname').should('eq', '/Calculadora');
 
-    // O DF% já vem sugerido pelos lançamentos, com o DAS dentro:
-    // (aluguel 750 + DAS 285) ÷ faturamento 4.050 = 25,6%.
-    cy.get('#sugestaoDf').should('contain', '25,6%');
-    cy.get('#DespesasFixasPercentual').should('have.value', '25,6');
+    // Sem mês fechado ainda, só o pró-labore aparece nos custos fixos, em branco.
+    cy.get('#CustosFixos_0__Nome').should('have.value', 'Pró-labore (seu salário)');
+    cy.get('#CustosFixos_0__Valor').should('have.value', '');
     cy.pausa(1500);
 
-    // Exemplo da Annik: custo R$ 50,00, DF 15%, DV 10%, lucro 20%
-    // → divisor 0,55, multiplicador 1,818, preço R$ 90,91.
-    cy.get('#CustoUnitario').clear().type('50,00');
-    cy.get('#DespesasFixasPercentual').clear().type('15');
-    cy.get('#DespesasVariaveisPercentual').clear().type('10');
-    cy.get('#LucroPercentual').clear().type('20');
+    // Planilha da Adriana: 24 dias, 8 h, 90 min, materiais R$ 14,95, lucro 30%
+    // → base 36,28; DF 4,81%; DV 3,73%; markup 1,62; preço R$ 58,77.
+    cy.preencherCasoAdriana();
     cy.pausa(1000);
     cy.contains('button', 'Calcular preço').click();
 
-    cy.get('#precoSugerido').should('contain', '90,91');
-    cy.get('#markupDivisor').should('have.text', '0,55');
-    cy.get('#markupMultiplicador').should('have.text', '1,818');
-    cy.get('#composicaoPreco').should('contain', '13,64').and('contain', '9,09').and('contain', '18,18');
+    cy.get('#precoSugerido').should('contain', '58,77');
+    cy.get('#markup').should('have.text', '1,62');
+    cy.get('#basePreco').should('contain', '36,28');
+    cy.get('#dfPercentual').should('have.text', '4,81%');
+    cy.get('#dvPercentual').should('have.text', '3,73%');
+    cy.get('#composicaoPreco').should('contain', '21,33').and('contain', '39,67').and('contain', '15,62');
     cy.get('#avisoMarkup').should('contain', 'Markup não é margem de lucro');
     cy.olharTela(3000);
   });

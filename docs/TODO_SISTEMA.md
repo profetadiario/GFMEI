@@ -1,7 +1,7 @@
 # To-dos do sistema (desenvolvimento, qualidade e devops)
 
 > Frente do **chat de sistema**. Artigo e apresentação ficam com o outro chat. Decisões continuam em `DECISOES_TCC.md`.
-> Atualizado em 20/11/2026. Marcos: **congelamento 27/11** (último deploy), reserva 26/11, **banca 04/12**.
+> Atualizado em 23/11/2026. Marcos: **congelamento 27/11** (último deploy), reserva 26/11, **banca 04/12**.
 
 Legenda: **[Sistema]** = este chat · **[Enrique]** = só você pode fazer · **[Annik]** = depende dela · ⛔ = bloqueado
 
@@ -10,10 +10,13 @@ Legenda: **[Sistema]** = este chat · **[Enrique]** = só você pode fazer · **
 1. ~~Annik responde a decisão 8~~ **Desbloqueado em 20/11/2026: o DAS entra no custo fixo (DF).** Exemplos reais da Annik continuam pendentes, mas **não bloqueiam o deploy** (viram casos de teste extras quando chegarem).
 2. ✅ Calculadora refeita e mesclada na `develop` (20/11).
 3. ✅ Teste do PDF do relatório passando, 24/24 (20/11) — achou e corrigiu o card da DRE cortado na impressão.
-4. Merge na `master` → deploy da v1.5 no Somee → conferência — **com o Enrique, checklist em `docs/DEPLOY_V1.5.md`**.
-5. Tag/release v1.5 (texto pronto em `docs/DEPLOY_V1.5.md`). ✅ Vídeo e capturas gravados em 20/11 (`docs/demo/`); regravar contra o Somee é opcional.
+4. ✅ v1.5 no ar em 21/11 (master `b06611d`, tag `v1.5`).
+5. ✅ **Hotfix da legenda do DRE** (`dd5ee6c`) no ar em 23/11 (master).
+6. ✅ **Decisões 9 e 10 no código** (branch `feat/pro-labore`, 23/11): pró-labore no lugar da retirada pessoal, calculadora da planilha da Adriana; 327 testes, Cypress 13/13 + 5/5, PDF 26/26; vídeo, capturas, figuras e documentação técnica refeitos.
+7. Verificar retiradas antigas no Somee (`docs/DECISAO10_DADOS_ANTIGOS.md`, passo 1) [Enrique] → decidir conversão.
+8. Deploy da v1.6 — checklist em `docs/DEPLOY_V1.6.md`.
 
-Meta: **v1.5 no ar até 24/11**; 26/11 reserva; 27/11 congelamento.
+Meta: **v1.6 no ar até 26/11**; 27/11 congelamento.
 
 ## 1. Desenvolvimento
 
@@ -22,7 +25,9 @@ Meta: **v1.5 no ar até 24/11**; 26/11 reserva; 27/11 congelamento.
   - DF% sugerido = (despesas fixas + DAS) médias ÷ faturamento médio dos últimos meses com lançamento; editável à mão (quem lança pouco não tem histórico).
   - Mostrar preço, markup divisor, markup multiplicador e o aviso "markup não é margem de lucro". Bloquear quando DF + DV + ML ≥ 100%.
   - ~~[Annik] DAS em DF ou DV~~ **Decidido em 20/11/2026: DAS em DF.**
-- [ ] **Exemplos reais da Annik viram casos de teste** [Annik → Sistema] — aguardando os exemplos; **não bloqueia o deploy**.
+- [x] **Calculadora pela planilha da Adriana (decisão 9)** [Sistema, 23/11] — caso de teste R$ 58,77 / R$ 50,42.
+- [ ] **Valores originais da planilha da Adriana e denominador do DF%/DV%** [Annik] — os valores mensais do teste foram reconstruídos; trocar se ela mandar os originais.
+- [x] **Pró-labore no lugar da retirada pessoal (decisão 10)** [Sistema, 23/11].
 - [ ] **Fonte do quadro "o que os bancos pedem"** [Enrique] — conferir o PDF do Sebrae (seção 5 do DECISOES). Se bater, [Sistema] coloca a linha de fonte na tela.
 - [ ] **Branch `pos-tcc-improvements`** [Sistema, depois da banca] — rebase na `develop` depois do merge da calculadora nova. Não vai para a banca.
 
@@ -57,9 +62,9 @@ As leituras do relatório estão **em validação pela Annik**; os números abai
 | O que a pesquisa mostrou | O que o sistema entrega | Alinhado? |
 |---|---|---|
 | Lançamento rápido indispensável para 23 de 25; poucos cliques (18/24); celular (15/24); linguagem simples (21/24) | Lançamento rápido com campos grandes e "Salvar e lançar outro" (v1.4); textos simples (v1.5); demo em celular | Sim |
-| Calculadora de preço indispensável para 17 de 25; precificação é o tema mais citado nas abertas (8 participantes), apesar de 84% dizerem precificar pelos custos | Calculadora (v1.5), a refazer pelo markup da Annik | Sim, com ressalva: 68% dizem conhecer custos fixos e variáveis, então DF%/DV% são viáveis, mas o DF% precisa vir **sugerido** e as explicações precisam ser curtas |
+| Calculadora de preço indispensável para 17 de 25; precificação é o tema mais citado nas abertas (8 participantes), apesar de 84% dizerem precificar pelos custos | Calculadora pela planilha de markup do curso (decisão 9, v1.6) | Sim, com ressalva: 68% dizem conhecer custos fixos e variáveis, então DF%/DV% são viáveis, mas o DF% precisa vir **sugerido** e as explicações precisam ser curtas |
 | Oscilação das vendas é a dificuldade nº 1 do caixa (12/24) | DF% pela **média** dos últimos meses (decisão 8); sobra média no indicador de parcela | Sim |
-| Misturar dinheiro pessoal e do negócio (12/23); separação indispensável para 12 de 25 | Retirada pessoal fora do DRE e dentro do caixa (v1.4) | Sim |
+| Misturar dinheiro pessoal e do negócio (12/23); separação indispensável para 12 de 25 | Decisão 10: retirada pessoal saiu; pró-labore como despesa fixa, lançado no fechamento do mês (v1.6) | Sim (pró-labore deixa explícita a remuneração) |
 | Gastos por categoria é o relatório mais pedido (20 de 25) | Gráfico "Para onde foi o dinheiro" (v1.4) | Sim |
 | Lucros e prejuízos mensal (17 de 25) | DRE mensal | Sim |
 | 15 de 25 não sabem o que o banco exige; afirmação 17 com 56% de discordância | Quadro "o que os bancos pedem" no relatório | Sim (fonte pendente) |

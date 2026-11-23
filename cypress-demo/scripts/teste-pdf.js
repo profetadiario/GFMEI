@@ -125,6 +125,7 @@ function confere(descricao, ok, detalhe = '') {
       ['resultado da simulação', 'Cabe com folga'],
       ['percentual da simulação', '26,4%'],
       ['DRE resumida', 'Lucro líquido'],
+      ['pró-labore nas despesas fixas (decisão 10)', 'Despesas fixas (com o pró-labore)'],
       ['quadro dos bancos', 'DASN-SIMEI'],
     ];
     // O PDF quebra palavras em pedaços: compara sem espaços.
@@ -136,6 +137,7 @@ function confere(descricao, ok, detalhe = '') {
       ['sem botão de imprimir', 'Imprimir / salvar em PDF'],
       ['sem botão da simulação', 'Ver se cabe'],
       ['sem menu', 'Ferramentas'],
+      ['sem linha de retiradas pessoais (decisão 10)', 'Retirada'],
     ];
     for (const [descricao, trecho] of naoDeve) confere(descricao, !tc.includes(semEspaco(trecho)));
     confere('no máximo 2 páginas A4', numpages <= 2, `${numpages} páginas`);

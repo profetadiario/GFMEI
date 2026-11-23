@@ -24,7 +24,7 @@
 
         <div class="mb-3" id="campoNaturezaContainer">
             <label asp-for="NaturezaDespesa" class="form-label"></label>
-            <select asp-for="NaturezaDespesa" class="form-select" asp-items="Html.GetEnumSelectList<NaturezaDespesa>()"></select>
+            <select asp-for="NaturezaDespesa" class="form-select" asp-items="Html.GetEnumSelectList<NaturezaDespesa>().Where(i => i.Value != ((int)NaturezaDespesa.RetiradaPessoal).ToString())"></select>
             <div class="form-text">Usada para montar o DRE. Só se aplica a categorias de despesa.</div>
         </div>
 

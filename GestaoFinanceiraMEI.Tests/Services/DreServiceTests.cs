@@ -194,19 +194,29 @@ public class DreServiceTests
     }
 
     [Test]
-    public async Task ObterDreAsync_RetiradaPessoal_NaoEntraEmNenhumaLinhaDoDre_NemAlteraOLucroLiquido()
+    public async Task ObterDreAsync_ProLabore_EntraComoDespesaFixa_EReduzOLucro()
     {
-        // Retirada pessoal é dinheiro que a empreendedora tira do negócio para uso
-        // próprio: não é despesa do negócio, então não pode reduzir o lucro.
+        const int categoriaProLabore = 51;
+        _context.Categorias.Add(new Categoria { Id = categoriaProLabore, Nome = "Pró-labore (seu salário)", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.DespesaFixa, UsuarioId = UsuarioId });
+        _context.SaveChanges();
+
+        AdicionarTransacao(CategoriaVendas, TipoTransacao.Receita, 3000m, 3, 2026);
+        AdicionarTransacao(CategoriaDespesaFixa, TipoTransacao.Despesa, 200m, 3, 2026);
+        AdicionarTransacao(categoriaProLabore, TipoTransacao.Despesa, 2000m, 3, 2026);
+
+        var dre = await _service.ObterDreAsync(UsuarioId, 3, 2026);
+
+        Assert.That(dre.DespesasFixas, Is.EqualTo(2200m));
+        Assert.That(dre.LucroLiquido, Is.EqualTo(800m));
+    }
+
+    [Test]
+    public async Task ObterDreAsync_RetiradaAntiga_ContaComoDespesaFixa_IgualAoProLabore()
+    {
+        // Decisão 10: a natureza RetiradaPessoal (v1.4–v1.5) continua no banco,
+        // mas nos cálculos vale como despesa fixa, até a conversão dos dados.
         const int categoriaRetirada = 50;
-        _context.Categorias.Add(new Categoria
-        {
-            Id = categoriaRetirada,
-            Nome = "Retirada pessoal",
-            Tipo = TipoTransacao.Despesa,
-            NaturezaDespesa = NaturezaDespesa.RetiradaPessoal,
-            UsuarioId = UsuarioId
-        });
+        _context.Categorias.Add(new Categoria { Id = categoriaRetirada, Nome = "Retirada pessoal", Tipo = TipoTransacao.Despesa, NaturezaDespesa = NaturezaDespesa.RetiradaPessoal, UsuarioId = UsuarioId });
         _context.SaveChanges();
 
         AdicionarTransacao(CategoriaVendas, TipoTransacao.Receita, 1000m, 3, 2026);
@@ -215,9 +225,8 @@ public class DreServiceTests
 
         var dre = await _service.ObterDreAsync(UsuarioId, 3, 2026);
 
-        Assert.That(dre.ReceitaBrutaTotal, Is.EqualTo(1000m));
-        Assert.That(dre.DespesasFixas, Is.EqualTo(200m));
+        Assert.That(dre.DespesasFixas, Is.EqualTo(900m));
         Assert.That(dre.DespesasVariaveis, Is.EqualTo(0m));
-        Assert.That(dre.LucroLiquido, Is.EqualTo(800m)); // 1000 - 200, sem descontar os 700 da retirada
+        Assert.That(dre.LucroLiquido, Is.EqualTo(100m));
     }
 }
