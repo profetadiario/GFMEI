@@ -151,13 +151,18 @@
                         legend: {
                             position: 'top',
                             labels: {
-                                color: '#f1f1f1',
+                                // Fundo escuro do card: legenda em branco. Com generateLabels
+                                // próprio, o Chart.js usa o fontColor de cada item (e não o
+                                // labels.color), por isso a cor vai também no item.
+                                color: '#ffffff',
                                 generateLabels: (chart) => chart.data.labels.map((label, i) => {
                                     const valor = chart.data.datasets[0].data[i];
                                     const pct = receitaBruta ? (valor / receitaBruta * 100).toFixed(1) : '0.0';
                                     return {
                                         text: `${label}: ${pct}%`,
                                         fillStyle: chart.data.datasets[0].backgroundColor[i],
+                                        strokeStyle: chart.data.datasets[0].backgroundColor[i],
+                                        fontColor: '#ffffff',
                                         index: i
                                     };
                                 })
